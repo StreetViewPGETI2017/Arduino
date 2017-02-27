@@ -1,10 +1,5 @@
 /* 
-This is a test sketch for the Adafruit assembled Motor Shield for Arduino v2
-It won't work with v1.x motor shields! Only for the v2's with built in PWM
-control
-
-For use with the Adafruit Motor Shield v2 
----->	http://www.adafruit.com/products/1438
+Author : Krzysztof Dudziak
 */
 
 #include <Wire.h>
@@ -16,13 +11,9 @@ For use with the Adafruit Motor Shield v2
 #define TURN_LEFT 1
 #define TURN_RIGHT 2
 
-// Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-// Or, create it with a different I2C address (say for stacking)
-// Adafruit_MotorShield AFMS = Adafruit_MotorShield(0x61); 
 
-// Select which 'port' M1, M2, M3 or M4. In this case, M1
-Adafruit_DCMotor *motorFR = AFMS.getMotor(1);
+Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
 Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
 Adafruit_DCMotor *motorBL = AFMS.getMotor(3);
 Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
@@ -35,7 +26,7 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
   uint8_t i;
   if (moveDirection == GO_FORWARD)
   {
-    motorFR->run(FORWARD);
+    motorFR->run(FORWARD); //set direction of motor
     motorFL->run(FORWARD);
     motorBR->run(BACKWARD);
     motorBL->run(BACKWARD);
@@ -50,7 +41,7 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
   
   for (i=0; i<maxSpeed; i++) 
   {
-    motorFR->setSpeed(i);
+    motorFR->setSpeed(i); //motor speed
     motorFL->setSpeed(i);
     motorBR->setSpeed(i);
     motorBL->setSpeed(i);  
@@ -65,13 +56,13 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
     motorBL->setSpeed(i); 
     delay(10);
   }
-  motorFR->run(RELEASE);
+  motorFR->run(RELEASE); //realease motor
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
 }
 
-void turn(int turnDirection, int turnTimems, int turnSpeed)
+void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwise
 {
   if (turnDirection == TURN_LEFT)
   {
@@ -101,8 +92,10 @@ void turn(int turnDirection, int turnTimems, int turnSpeed)
   motorBL->run(RELEASE);
 }
 
-void serialEvent() {
-  while (SerialUSB.available()) {
+void serialEvent() //serial port data receive event function
+{
+  while (SerialUSB.available()) 
+  {
     // get the new byte:
     char inChar = (char)SerialUSB.read();
     // add it to the inputString:
@@ -110,10 +103,6 @@ void serialEvent() {
     // if the incoming character is a newline, set a flag
     // so the main loop can do something about it:
     stringComplete = true;
-    /*if (inChar == '\n') 
-    {
-      stringComplete = true;
-    }*/
   }
 }
 
@@ -122,18 +111,11 @@ void setup() {
   SerialUSB.println("Adafruit Motorshield v2 - DC Motor test!");
 
   AFMS.begin();  // create with the default frequency 1.6KHz
-  //AFMS.begin(1000);  // OR with a different frequency, say 1KHz
-  
-  // Set the speed to start, from 0 (off) to 255 (max speed)
-  /*myMotor->setSpeed(150);
-  myMotor->run(FORWARD);
-  // turn on motor
-  myMotor->run(RELEASE);*/
 }
 
 void loop() {
   
-  if (SerialUSB.available()) serialEvent();
+  if (SerialUSB.available()) serialEvent(); //call event function
   if (stringComplete) {
     SerialUSB.println("received");
    
