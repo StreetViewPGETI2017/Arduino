@@ -5,11 +5,16 @@ Author : Krzysztof Dudziak
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
+#include <Servo.h>
 
 #define GO_FORWARD 1
 #define GO_BACKWARD 2
 #define TURN_LEFT 1
 #define TURN_RIGHT 2
+#define SERVO_PIN 9
+
+#define SERVO_START_POS 50
+#define SERVO_END_POS 165
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 
@@ -18,8 +23,16 @@ Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
 Adafruit_DCMotor *motorBL = AFMS.getMotor(3);
 Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 
+Servo cameraServo; // create servo object to control a servo
+
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
+int servoTurn = 5;
+
+void waitForRaspberry()
+{
+  delay(500); //should be replaced with function that waits for Raspberry to finish tasks related to taking pictures
+}
 
 void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
 {
@@ -92,6 +105,30 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
   motorBL->run(RELEASE);
 }
 
+void rotateCamera() //rotates camera
+{
+  int pos;
+  
+  for (pos = cameraServo.read(); pos+servoTurn <= SERVO_END_POS; pos = cameraServo.read()) //take pictures
+  {
+    cameraServo.write(pos+servoTurn);
+    SerialUSB.println(cameraServo.read());
+    waitForRaspberry();
+  }
+  
+  servoTurn = -servoTurn;
+
+  for (pos = cameraServo.read(); pos+servoTurn >= SERVO_START_POS; pos = cameraServo.read()) //return back
+  {
+    cameraServo.write(pos+servoTurn);
+    SerialUSB.println(cameraServo.read());
+    delay(500); //perhaps should be replaced with waiting for Raspberry
+  }
+  
+  servoTurn = -servoTurn;
+  
+}
+
 void serialEvent() //serial port data receive event function
 {
   while (SerialUSB.available()) 
@@ -100,9 +137,7 @@ void serialEvent() //serial port data receive event function
     char inChar = (char)SerialUSB.read();
     // add it to the inputString:
     inputString += inChar;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-    stringComplete = true;
+    stringComplete = true; //one char working version
   }
 }
 
@@ -111,6 +146,8 @@ void setup() {
   SerialUSB.println("Adafruit Motorshield v2 - DC Motor test!");
 
   AFMS.begin();  // create with the default frequency 1.6KHz
+  cameraServo.attach(SERVO_PIN);
+  cameraServo.write(SERVO_START_POS);
 }
 
 void loop() {
@@ -138,6 +175,11 @@ void loop() {
     {
       SerialUSB.println("turning right");
       turn(TURN_RIGHT, 1000, 64);
+    }
+    else if (inputString == "p")
+    {
+      SerialUSB.println("camera rotation");
+      rotateCamera();
     }
      // clear the string:
     inputString = "";
