@@ -16,6 +16,8 @@ Author : Krzysztof Dudziak
 #define SERVO_START_POS 50
 #define SERVO_END_POS 165
 
+#define TEST_SERIAL 1
+
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 
 Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
@@ -29,9 +31,28 @@ String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 int servoTurn = 5;
 
-void waitForRaspberry()
+int waitForRaspberry()
 {
   delay(500); //should be replaced with function that waits for Raspberry to finish tasks related to taking pictures
+  return 1;
+}
+
+int sendToRaspberry()
+{
+  //code for sending to Raspberry
+  return 1;
+}
+
+String getFromRaspberry()
+{
+  //code for receiving from Raspberry
+  return "";
+}
+
+int readSonicData()
+{
+  //code for reading from ultrasonic sensors
+  return 1;
 }
 
 void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
@@ -126,6 +147,13 @@ void rotateCamera() //rotates camera
   }
   
   servoTurn = -servoTurn;
+  /*for (int i = 0; i < 10; ++i)
+  {
+    cameraServo.write(0);
+    delay(100);
+    cameraServo.write(78);
+    delay(500);
+  }*/
   
 }
 
@@ -148,11 +176,17 @@ void setup() {
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(SERVO_START_POS);
+
+  //your own initializattion code
 }
 
 void loop() {
-  
+#ifdef TEST_SERIAL
   if (SerialUSB.available()) serialEvent(); //call event function
+#endif
+#ifndef TEST_SERIAL
+  inputString = getFromRaspberry();
+#endif
   if (stringComplete) {
     SerialUSB.println("received");
    
