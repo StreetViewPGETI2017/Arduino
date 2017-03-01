@@ -13,6 +13,9 @@ Author : Krzysztof Dudziak
 #define TURN_RIGHT 2
 #define SERVO_PIN 9
 
+#define I2C_ADDRESS 5
+#define I2C_SEND_BYTES 10
+
 #define SERVO_START_POS 50
 #define SERVO_END_POS 165
 
@@ -30,13 +33,19 @@ Servo cameraServo; // create servo object to control a servo
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 int servoTurn = 5;
+volatile char charI2C;
+volatile boolean charI2Ccomplete = false;
 
-int waitForRaspberry()
+void waitForRaspberry()
 {
-  delay(500); //should be replaced with function that waits for Raspberry to finish tasks related to taking pictures
-  return 1;
+  while(1) //waits for Raspberry confirmation
+  {
+    if(charI2Ccomplete &&  charI2C == 'w')break;
+    else delay(10);
+  }
+  charI2C = ' ';
+  charI2Ccomplete = false;
 }
-
 int sendToRaspberry()
 {
   //code for sending to Raspberry
@@ -46,6 +55,11 @@ int sendToRaspberry()
 String getFromRaspberry()
 {
   //code for receiving from Raspberry
+  if(charI2Ccomplete)
+  {
+    charI2Ccomplete = false;
+    return String(charI2C);
+  }
   return "";
 }
 
@@ -168,6 +182,17 @@ void serialEvent() //serial port data receive event function
     stringComplete = true; //one char working version
   }
 }
+void receiveEventI2C(int howMany)//I2C port data receive, howMany - the number of bytes read from the master
+{
+  while ( Wire.available()) // loop through all but the last
+  { 
+    charI2C = Wire.read(); // receive byte as a character
+  }
+  charI2Ccomplete = true; 
+}
+void requestEventI2C() {
+  Wire.write("hello ");
+}
 
 void setup() {
   SerialUSB.begin(9600);           // set up SerialUSB library at 9600 bps
@@ -176,6 +201,12 @@ void setup() {
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(SERVO_START_POS);
+
+  //I2C:
+  Serial.begin(9600);           // start serial at 9600 bps
+  Wire.begin(I2C_ADDRESS); //join to i2c with I2C_ADDRESS
+  Wire.onReceive(receiveEventI2C); // register event
+  //Wire.onRequest(requestEventI2C); 
 
   //your own initializattion code
 }
