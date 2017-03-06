@@ -21,6 +21,13 @@ Author : Krzysztof Dudziak
 
 #define TEST_SERIAL 1
 
+#define trigPinForward 2
+#define echoPinForward 3
+#define trigPinLeft 4
+#define echoPinLeft 5
+#define trigPinRight 6
+#define echoPinRight 7
+
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 
 Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
@@ -63,10 +70,60 @@ String getFromRaspberry()
   return "";
 }
 
-int readSonicData()
-{
-  //code for reading from ultrasonic sensors
-  return 1;
+long* readSonicData(){
+ //long forwardDistance, leftDistance, rightDistance;
+
+ long distance[3];
+ distance[0] = readSonicForward();
+ distance[1] = readSonicLeft();
+ distance[2] = readSonicRight();
+  
+ return distance;
+}
+
+long readSonicForward(){
+  long time, distance;
+ 
+  digitalWrite(trigPinForward, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinForward, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinForward, LOW);
+ 
+  time = pulseIn(echoPinForward, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
+}
+
+long readSonicRight(){
+  long time, distance;
+ 
+  digitalWrite(trigPinRight, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinRight, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinRight, LOW);
+ 
+  time = pulseIn(echoPinRight, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
+}
+
+long readSonicLeft(){
+  long time, distance;
+ 
+  digitalWrite(trigPinLeft, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinLeft, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinLeft, LOW);
+ 
+  time = pulseIn(echoPinLeft, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
 }
 
 void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
@@ -208,6 +265,12 @@ void setup() {
   Wire.onReceive(receiveEventI2C); // register event
   //Wire.onRequest(requestEventI2C); 
 
+  pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
+  pinMode(echoPinForward, INPUT);
+  pinMode(trigPinLeft, OUTPUT);
+  pinMode(echoPinLeft, INPUT);
+  pinMode(trigPinRight, OUTPUT);
+  pinMode(echoPinRight, INPUT);
   //your own initializattion code
 }
 
