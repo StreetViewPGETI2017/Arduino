@@ -1,0 +1,86 @@
+#define trigPinForward 2
+#define echoPinForward 3
+#define trigPinLeft 4
+#define echoPinLeft 5
+#define trigPinRight 6
+#define echoPinRight 7
+
+void setup() {
+  SerialUSB.begin (9600);
+  pinMode(trigPinForward, OUTPUT);
+  pinMode(echoPinForward, INPUT);
+  pinMode(trigPinLeft, OUTPUT);
+  pinMode(echoPinLeft, INPUT);
+  pinMode(trigPinRight, OUTPUT);
+  pinMode(echoPinRight, INPUT);
+}
+
+void loop(){
+
+  readSonicData(); 
+  
+  delay(500);
+}
+
+long* readSonicData(){
+ //long forwardDistance, leftDistance, rightDistance;
+
+ long distance[3];
+ distance[0] = readSonicForward();
+ distance[1] = readSonicLeft();
+ distance[2] = readSonicRight();
+
+ /*for(int i=0; i<3; i++){
+   SerialUSB.print("Czujnik nr: ");
+   SerialUSB.println(i);
+   SerialUSB.print(distance[i]);
+   SerialUSB.println(" cm ");
+ }*/
+  
+ return distance;
+}
+
+long readSonicForward(){
+  long time, distance;
+ 
+  digitalWrite(trigPinForward, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinForward, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinForward, LOW);
+ 
+  time = pulseIn(echoPinForward, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
+}
+
+long readSonicRight(){
+  long time, distance;
+ 
+  digitalWrite(trigPinRight, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinRight, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinRight, LOW);
+ 
+  time = pulseIn(echoPinRight, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
+}
+
+long readSonicLeft(){
+  long time, distance;
+ 
+  digitalWrite(trigPinLeft, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinLeft, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinLeft, LOW);
+ 
+  time = pulseIn(echoPinLeft, HIGH);
+  distance = time / 58;  // to get cm 
+
+  return distance;
+}
