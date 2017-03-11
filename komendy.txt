@@ -1,4 +1,4 @@
-odbiór przez I2C w postaci 1 bajta - char
+odbiór przez USB
 ---------------jazda robotem--------------
 f - przód
 b - ty³

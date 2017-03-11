@@ -12,14 +12,10 @@ Author : Krzysztof Dudziak
 #define TURN_LEFT 1
 #define TURN_RIGHT 2
 #define SERVO_PIN 9
-
-#define I2C_ADDRESS 5
-#define I2C_SEND_BYTES 10
+#define WAIT_TIME 10000
 
 #define SERVO_START_POS 50
 #define SERVO_END_POS 165
-
-#define TEST_SERIAL 1
 
 #define trigPinForward 2
 #define echoPinForward 3
@@ -40,35 +36,7 @@ Servo cameraServo; // create servo object to control a servo
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
 int servoTurn = 5;
-volatile char charI2C;
-volatile boolean charI2Ccomplete = false;
 
-void waitForRaspberry()
-{
-  while(1) //waits for Raspberry confirmation
-  {
-    if(charI2Ccomplete &&  charI2C == 'w')break;
-    else delay(10);
-  }
-  charI2C = ' ';
-  charI2Ccomplete = false;
-}
-int sendToRaspberry()
-{
-  //code for sending to Raspberry
-  return 1;
-}
-
-String getFromRaspberry()
-{
-  //code for receiving from Raspberry
-  if(charI2Ccomplete)
-  {
-    charI2Ccomplete = false;
-    return String(charI2C);
-  }
-  return "";
-}
 
 long* readSonicData(){
  //long forwardDistance, leftDistance, rightDistance;
@@ -205,7 +173,7 @@ void rotateCamera() //rotates camera
   {
     cameraServo.write(pos+servoTurn);
     SerialUSB.println(cameraServo.read());
-    waitForRaspberry();
+    waitForRaspberry(WAIT_TIME);
   }
   
   servoTurn = -servoTurn;
@@ -228,29 +196,6 @@ void rotateCamera() //rotates camera
   
 }
 
-void serialEvent() //serial port data receive event function
-{
-  while (SerialUSB.available()) 
-  {
-    // get the new byte:
-    char inChar = (char)SerialUSB.read();
-    // add it to the inputString:
-    inputString += inChar;
-    stringComplete = true; //one char working version
-  }
-}
-void receiveEventI2C(int howMany)//I2C port data receive, howMany - the number of bytes read from the master
-{
-  while ( Wire.available()) // loop through all but the last
-  { 
-    charI2C = Wire.read(); // receive byte as a character
-  }
-  charI2Ccomplete = true; 
-}
-void requestEventI2C() {
-  Wire.write("hello ");
-}
-
 void setup() {
   SerialUSB.begin(9600);           // set up SerialUSB library at 9600 bps
   SerialUSB.println("Adafruit Motorshield v2 - DC Motor test!");
@@ -258,12 +203,6 @@ void setup() {
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(SERVO_START_POS);
-
-  //I2C:
-  Serial.begin(9600);           // start serial at 9600 bps
-  Wire.begin(I2C_ADDRESS); //join to i2c with I2C_ADDRESS
-  Wire.onReceive(receiveEventI2C); // register event
-  //Wire.onRequest(requestEventI2C); 
 
   pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
   pinMode(echoPinForward, INPUT);
@@ -275,12 +214,7 @@ void setup() {
 }
 
 void loop() {
-#ifdef TEST_SERIAL
-  if (SerialUSB.available()) serialEvent(); //call event function
-#endif
-#ifndef TEST_SERIAL
-  inputString = getFromRaspberry();
-#endif
+  if (SerialUSB.available()) recieveUSB(); //call event function
   if (stringComplete) {
     SerialUSB.println("received");
    
