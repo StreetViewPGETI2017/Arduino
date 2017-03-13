@@ -6,4 +6,7 @@ l - lewo
 r - prawo
 ---------------kamera---------------------
 p - obrót
-w - czekanie na potwierdzenie od Raspberry
+w - potwierdzenie od Raspberry
+---------------inne-----------------------
+$ - koniec komunikatu
+d - proœba o dane

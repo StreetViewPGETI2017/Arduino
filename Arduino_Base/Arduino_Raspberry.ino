@@ -1,29 +1,32 @@
 
 void recieveUSB() //USB data receive event function
 {
-  while (SerialUSB.available()) 
+  String inString = "";
+  for (int i=0; SerialUSB.available() && i < RX_SIZE; i++) 
   {
-    // get the new byte:
-    char inChar = (char)SerialUSB.read();
-    // add it to the inputString:
-    inputString += inChar;
-    stringComplete = true; //one char working version
+    inString = String(SerialUSB.read());
+    if(inString == END_OF_MESSAGE)break;
+    dataFromUSB[i] = inString;
   }
+  received = true; 
 }
-int sendUSB()
+void sendUSB(String data[])
 {
   //code for sending to Raspberry
-  return 1;
+  for(int i=0; i<TX_SIZE && i < dataCounter;i++)
+  {
+    SerialUSB.println(data[i]);
+  }
+  SerialUSB.println(END_OF_MESSAGE);
 }
 bool waitForRaspberry(int waitTime)
 {
   int wait = 0;
-  while(wait != waitTime) //waits for Raspberry confirmation default 10 seconds
+  while(wait != waitTime) //waits for Raspberry confirmation
   {
-    if(stringComplete &&  inputString == "w")
+    if(received &&  dataFromUSB[0] == "w")
     {
-      inputString = "";
-      stringComplete = false;
+      clearDataFromUSB();
       return 0;//success
     }
     else
@@ -33,5 +36,11 @@ bool waitForRaspberry(int waitTime)
     }
   }
   return 1;//failure
+}
+void clearDataFromUSB()
+{
+  for(int i=0; i<RX_SIZE; i++)
+  dataFromUSB[i] = "";
+  received = false;
 }
 

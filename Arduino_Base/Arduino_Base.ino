@@ -24,6 +24,10 @@ Author : Krzysztof Dudziak
 #define trigPinRight 6
 #define echoPinRight 7
 
+#define END_OF_MESSAGE "$"
+#define RX_SIZE 3
+#define TX_SIZE 100
+
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 
 Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
@@ -33,10 +37,12 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 
 Servo cameraServo; // create servo object to control a servo
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
 int servoTurn = 5;
 
+String dataFromUSB[RX_SIZE]= {"","",""};; //0 - code, 1-argument, 2-argument
+bool received = false;
+String dataToUSB[TX_SIZE];
+int dataCounter = 0;//counts how many cells is filled
 
 long* readSonicData(){
  //long forwardDistance, leftDistance, rightDistance;
@@ -215,36 +221,43 @@ void setup() {
 
 void loop() {
   if (SerialUSB.available()) recieveUSB(); //call event function
-  if (stringComplete) {
+  if (received) {
     SerialUSB.println("received");
-   
-    if (inputString == "f")
+    String command = dataFromUSB[0];
+   /* 
+    int time = dataFromRasp[1].toInt();
+    int speed = dataFromRasp[2].toInt();
+    */
+    if (command == "f")
     {
       SerialUSB.println("going forward");
       moveStraight(GO_FORWARD,1000, 128);
     }
-    else if (inputString == "b")
+    else if (command  == "b")
     {
       SerialUSB.println("going backward");
       moveStraight(GO_BACKWARD,1000, 128);
     }
-    else if (inputString == "l")
+    else if (command == "l")
     {
       SerialUSB.println("turning left");
       turn(TURN_LEFT, 1000, 64);
     }
-    else if (inputString == "r")
+    else if (command  == "r")
     {
       SerialUSB.println("turning right");
       turn(TURN_RIGHT, 1000, 64);
     }
-    else if (inputString == "p")
+    else if (command  == "p")
     {
       SerialUSB.println("camera rotation");
       rotateCamera();
     }
-     // clear the string:
-    inputString = "";
-    stringComplete = false;
+    else if (command == "d")
+    {
+      SerialUSB.println("data sending");
+      sendUSB(dataToUSB);
+    }
+    clearDataFromUSB();
   }
 }
