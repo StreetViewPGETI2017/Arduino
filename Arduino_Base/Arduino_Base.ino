@@ -45,13 +45,15 @@ volatile boolean charI2Ccomplete = false;
 
 void waitForRaspberry()
 {
+  delay(500);
+  /*
   while(1) //waits for Raspberry confirmation
   {
     if(charI2Ccomplete &&  charI2C == 'w')break;
     else delay(10);
   }
   charI2C = ' ';
-  charI2Ccomplete = false;
+  charI2Ccomplete = false;*/
 }
 int sendToRaspberry()
 {
@@ -199,33 +201,20 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
 
 void rotateCamera() //rotates camera
 {
-  int pos;
-  
-  for (pos = cameraServo.read(); pos+servoTurn <= SERVO_END_POS; pos = cameraServo.read()) //take pictures
+  for (int i = 0; i < 8; ++i)
   {
-    cameraServo.write(pos+servoTurn);
-    SerialUSB.println(cameraServo.read());
+    cameraServo.write(100);
+    waitForRaspberry();
+    cameraServo.write(95);
     waitForRaspberry();
   }
-  
-  servoTurn = -servoTurn;
-
-  for (pos = cameraServo.read(); pos+servoTurn >= SERVO_START_POS; pos = cameraServo.read()) //return back
+  for (int i = 0; i < 8; ++i)
   {
-    cameraServo.write(pos+servoTurn);
-    SerialUSB.println(cameraServo.read());
-    delay(500); //perhaps should be replaced with waiting for Raspberry
+    cameraServo.write(90);
+    waitForRaspberry();
+    cameraServo.write(95);
+    waitForRaspberry();
   }
-  
-  servoTurn = -servoTurn;
-  /*for (int i = 0; i < 10; ++i)
-  {
-    cameraServo.write(0);
-    delay(100);
-    cameraServo.write(78);
-    delay(500);
-  }*/
-  
 }
 
 void serialEvent() //serial port data receive event function
@@ -259,11 +248,11 @@ void setup() {
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(SERVO_START_POS);
 
-  //I2C:
+ /* //I2C:
   Serial.begin(9600);           // start serial at 9600 bps
   Wire.begin(I2C_ADDRESS); //join to i2c with I2C_ADDRESS
   Wire.onReceive(receiveEventI2C); // register event
-  //Wire.onRequest(requestEventI2C); 
+  //Wire.onRequest(requestEventI2C); */
 
   pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
   pinMode(echoPinForward, INPUT);
@@ -297,17 +286,25 @@ void loop() {
     else if (inputString == "l")
     {
       SerialUSB.println("turning left");
-      turn(TURN_LEFT, 1000, 64);
+      turn(TURN_LEFT, 1000, 128);
     }
     else if (inputString == "r")
     {
       SerialUSB.println("turning right");
-      turn(TURN_RIGHT, 1000, 64);
+      turn(TURN_RIGHT, 1000, 128);
     }
     else if (inputString == "p")
     {
+      //SerialUSB.println(readSonicLeft());
       SerialUSB.println("camera rotation");
       rotateCamera();
+    }
+    else if (inputString == "s")
+    {
+      SerialUSB.println("Ultra Sonic Sensor read: ");
+      SerialUSB.println(readSonicLeft());
+      SerialUSB.println(readSonicForward());
+      SerialUSB.println(readSonicRight());
     }
      // clear the string:
     inputString = "";
