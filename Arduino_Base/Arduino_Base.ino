@@ -26,7 +26,21 @@ Author : Krzysztof Dudziak
 
 #define END_OF_MESSAGE "$"
 #define RX_SIZE 3
-#define TX_SIZE 100
+#define TX_SIZE 20
+
+String dataFromUSB[RX_SIZE]= {"","",""};; //0 - code, 1-argument, 2-argument
+volatile bool received = false;
+struct dataToUSB{
+  //counts how many cells is filled:
+  int cellsIMU = 0;
+  int cellsEncoder = 0;
+  int cellsSonar = 0;
+  //data storage:
+  int imu[TX_SIZE][3];//accelerometer,magnetometer,gyroscope
+  int sonar[TX_SIZE][3];//forward,left,right
+  int encoder[TX_SIZE][2];
+};
+dataToUSB data;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 
@@ -38,11 +52,6 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 Servo cameraServo; // create servo object to control a servo
 
 int servoTurn = 5;
-
-String dataFromUSB[RX_SIZE]= {"","",""};; //0 - code, 1-argument, 2-argument
-bool received = false;
-String dataToUSB[TX_SIZE];
-int dataCounter = 0;//counts how many cells is filled
 
 long* readSonicData(){
  //long forwardDistance, leftDistance, rightDistance;
@@ -222,42 +231,44 @@ void setup() {
 void loop() {
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (received) {
-    SerialUSB.println("received");
     String command = dataFromUSB[0];
-   /* 
-    int time = dataFromRasp[1].toInt();
-    int speed = dataFromRasp[2].toInt();
-    */
+    int argument = 0;//distance or angle
+    int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
+ 
     if (command == "f")
     {
-      SerialUSB.println("going forward");
+      argument = dataFromUSB[1].toInt();//distance
       moveStraight(GO_FORWARD,1000, 128);
+      confirmationArgument = 1; //test value
     }
     else if (command  == "b")
     {
-      SerialUSB.println("going backward");
+      argument = dataFromUSB[1].toInt();//distance
       moveStraight(GO_BACKWARD,1000, 128);
+      confirmationArgument = 1; //test value
     }
     else if (command == "l")
     {
-      SerialUSB.println("turning left");
+      argument = dataFromUSB[1].toInt();//angle
       turn(TURN_LEFT, 1000, 64);
+      confirmationArgument = 2; //test value
     }
     else if (command  == "r")
     {
-      SerialUSB.println("turning right");
+      argument = dataFromUSB[1].toInt();//angle
       turn(TURN_RIGHT, 1000, 64);
+      confirmationArgument = 2; //test value
     }
     else if (command  == "p")
     {
-      SerialUSB.println("camera rotation");
       rotateCamera();
     }
-    else if (command == "d")
+    else if (command == "i")
     {
-      SerialUSB.println("data sending");
-      sendUSB(dataToUSB);
+      //IMU data sending
+    //  sendUSB();
     }
+    sendConfirmation(command,confirmationArgument);
     clearDataFromUSB();
   }
 }
