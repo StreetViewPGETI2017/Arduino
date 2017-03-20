@@ -1,5 +1,5 @@
-/* 
-Author : Krzysztof Dudziak
+/*
+  Author : Krzysztof Dudziak
 */
 
 #include <Wire.h>
@@ -28,21 +28,21 @@ Author : Krzysztof Dudziak
 #define RX_SIZE 3
 #define TX_SIZE 20
 
-String dataFromUSB[RX_SIZE]= {"","",""};; //0 - code, 1-argument, 2-argument
+String dataFromUSB[RX_SIZE] = {"", "", ""};; //0 - code, 1-argument, 2-argument
 volatile bool received = false;
-struct dataToUSB{
-  //counts how many cells is filled:
-  int cellsIMU = 0;
-  int cellsEncoder = 0;
-  int cellsSonar = 0;
+struct dataToUSB {
+  //counts how many rows is filled:
+  int rowsIMU = 0;
+  int rowsEncoder = 0;
+  int rowsSonar = 0;
   //data storage:
   int imu[TX_SIZE][3];//accelerometer,magnetometer,gyroscope
   int sonar[TX_SIZE][3];//forward,left,right
-  int encoder[TX_SIZE][2];
+  int encoder[TX_SIZE][3];//only two encoders, but function accepts three
 };
 dataToUSB data;
 
-Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
 Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
@@ -53,58 +53,58 @@ Servo cameraServo; // create servo object to control a servo
 
 int servoTurn = 5;
 
-long* readSonicData(){
- //long forwardDistance, leftDistance, rightDistance;
+long* readSonicData() {
+  //long forwardDistance, leftDistance, rightDistance;
 
- long distance[3];
- distance[0] = readSonicForward();
- distance[1] = readSonicLeft();
- distance[2] = readSonicRight();
-  
- return distance;
+  long distance[3];
+  distance[0] = readSonicForward();
+  distance[1] = readSonicLeft();
+  distance[2] = readSonicRight();
+
+  return distance;
 }
 
-long readSonicForward(){
+long readSonicForward() {
   long time, distance;
- 
+
   digitalWrite(trigPinForward, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPinForward, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPinForward, LOW);
- 
+
   time = pulseIn(echoPinForward, HIGH);
-  distance = time / 58;  // to get cm 
+  distance = time / 58;  // to get cm
 
   return distance;
 }
 
-long readSonicRight(){
+long readSonicRight() {
   long time, distance;
- 
+
   digitalWrite(trigPinRight, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPinRight, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPinRight, LOW);
- 
+
   time = pulseIn(echoPinRight, HIGH);
-  distance = time / 58;  // to get cm 
+  distance = time / 58;  // to get cm
 
   return distance;
 }
 
-long readSonicLeft(){
+long readSonicLeft() {
   long time, distance;
- 
+
   digitalWrite(trigPinLeft, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPinLeft, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPinLeft, LOW);
- 
+
   time = pulseIn(echoPinLeft, HIGH);
-  distance = time / 58;  // to get cm 
+  distance = time / 58;  // to get cm
 
   return distance;
 }
@@ -126,22 +126,22 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
     motorBR->run(FORWARD);
     motorBL->run(FORWARD);
   }
-  
-  for (i=0; i<maxSpeed; i++) 
+
+  for (i = 0; i < maxSpeed; i++)
   {
     motorFR->setSpeed(i); //motor speed
     motorFL->setSpeed(i);
     motorBR->setSpeed(i);
-    motorBL->setSpeed(i);  
+    motorBL->setSpeed(i);
     delay(10);
   }
   delay(driveTimems);
-  for (i=maxSpeed; i!=0; i--) 
+  for (i = maxSpeed; i != 0; i--)
   {
-    motorFR->setSpeed(i);  
+    motorFR->setSpeed(i);
     motorFL->setSpeed(i);
     motorBR->setSpeed(i);
-    motorBL->setSpeed(i); 
+    motorBL->setSpeed(i);
     delay(10);
   }
   motorFR->run(RELEASE); //realease motor
@@ -167,7 +167,7 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
     motorBL->run(BACKWARD);
   }
 
-  motorFR->setSpeed(turnSpeed);  
+  motorFR->setSpeed(turnSpeed);
   motorFL->setSpeed(turnSpeed);
   motorBR->setSpeed(turnSpeed);
   motorBL->setSpeed(turnSpeed);
@@ -183,32 +183,32 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
 void rotateCamera() //rotates camera
 {
   int pos;
-  
-  for (pos = cameraServo.read(); pos+servoTurn <= SERVO_END_POS; pos = cameraServo.read()) //take pictures
+
+  for (pos = cameraServo.read(); pos + servoTurn <= SERVO_END_POS; pos = cameraServo.read()) //take pictures
   {
-    cameraServo.write(pos+servoTurn);
+    cameraServo.write(pos + servoTurn);
     SerialUSB.println(cameraServo.read());
     waitForRaspberry(WAIT_TIME);
   }
-  
+
   servoTurn = -servoTurn;
 
-  for (pos = cameraServo.read(); pos+servoTurn >= SERVO_START_POS; pos = cameraServo.read()) //return back
+  for (pos = cameraServo.read(); pos + servoTurn >= SERVO_START_POS; pos = cameraServo.read()) //return back
   {
-    cameraServo.write(pos+servoTurn);
+    cameraServo.write(pos + servoTurn);
     SerialUSB.println(cameraServo.read());
     delay(500); //perhaps should be replaced with waiting for Raspberry
   }
-  
+
   servoTurn = -servoTurn;
   /*for (int i = 0; i < 10; ++i)
-  {
+    {
     cameraServo.write(0);
     delay(100);
     cameraServo.write(78);
     delay(500);
-  }*/
-  
+    }*/
+
 }
 
 void setup() {
@@ -234,41 +234,54 @@ void loop() {
     String command = dataFromUSB[0];
     int argument = 0;//distance or angle
     int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
- 
-    if (command == "f")
+
+    if (command == "f")           //forward
     {
       argument = dataFromUSB[1].toInt();//distance
-      moveStraight(GO_FORWARD,1000, 128);
+      moveStraight(GO_FORWARD, 1000, 128);
       confirmationArgument = 1; //test value
     }
-    else if (command  == "b")
+    else if (command  == "b")      //backward
     {
       argument = dataFromUSB[1].toInt();//distance
-      moveStraight(GO_BACKWARD,1000, 128);
+      moveStraight(GO_BACKWARD, 1000, 128);
       confirmationArgument = 1; //test value
     }
-    else if (command == "l")
+    else if (command == "l")       //left
     {
       argument = dataFromUSB[1].toInt();//angle
       turn(TURN_LEFT, 1000, 64);
       confirmationArgument = 2; //test value
     }
-    else if (command  == "r")
+    else if (command  == "r")      //right
     {
       argument = dataFromUSB[1].toInt();//angle
       turn(TURN_RIGHT, 1000, 64);
       confirmationArgument = 2; //test value
     }
-    else if (command  == "p")
+    else if (command  == "p")     //camera rotation
     {
       rotateCamera();
     }
-    else if (command == "i")
+    else if (command == "i")      //IMU data sending
     {
-      //IMU data sending
-    //  sendUSB();
+      sendUSB(data.imu, 3, data.rowsIMU);
+      memset(data.imu, 0, sizeof(data.imu)); //clear data
+      data.rowsIMU = 0;
     }
-    sendConfirmation(command,confirmationArgument);
+    else if (command == "e")    //encoders data sending
+    {
+      sendUSB(data.encoder, 2, data.rowsEncoder);
+      memset(data.encoder, 0, sizeof(data.encoder)); //clear data
+      data.rowsEncoder = 0;
+    }
+    else if (command == "s")    //sonars data sending
+    {
+      sendUSB(data.sonar, 3, data.rowsSonar);
+      memset(data.sonar, 0, sizeof(data.sonar)); //clear data
+      data.rowsSonar = 0;
+    }
+    sendConfirmation(command, confirmationArgument);
     clearDataFromUSB();
   }
 }
