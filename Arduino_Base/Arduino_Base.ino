@@ -19,12 +19,12 @@
 
 #define trigPinForward 2
 #define echoPinForward 3
-#define trigPinLeft 4
-#define echoPinLeft 5
-#define trigPinRight 6
-#define echoPinRight 7
+#define trigPinLeft 6
+#define echoPinLeft 7
+#define trigPinRight 4
+#define echoPinRight 5
 
-#define END_OF_MESSAGE "$"
+#define END_OF_MESSAGE '$'
 #define RX_SIZE 3
 #define TX_SIZE 20
 
@@ -340,7 +340,7 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
 
 void rotateCamera() //rotates camera
 {
-  int pos;
+  /*int pos;
 
   for (pos = cameraServo.read(); pos + servoTurn <= SERVO_END_POS; pos = cameraServo.read()) //take pictures
   {
@@ -358,15 +358,23 @@ void rotateCamera() //rotates camera
     delay(500); //perhaps should be replaced with waiting for Raspberry
   }
 
-  servoTurn = -servoTurn;
-  /*for (int i = 0; i < 10; ++i)
+  servoTurn = -servoTurn;*/
+  for (int i = 0; i < 10; ++i)
     {
-    cameraServo.write(0);
-    delay(100);
-    cameraServo.write(78);
+    cameraServo.write(98);
+    //waitForRaspberry();
     delay(500);
-    }*/
-
+    cameraServo.write(95);
+    delay(500);
+    }
+  for (int i = 0; i < 10; ++i)
+    {
+    cameraServo.write(92);
+    //waitForRaspberry();
+    delay(500);
+    cameraServo.write(95);
+    delay(500);
+    }
 }
 
 void setup() {
@@ -375,7 +383,7 @@ void setup() {
 
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
-  cameraServo.write(SERVO_START_POS);
+  cameraServo.write(95);
 
   pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
   pinMode(echoPinForward, INPUT);
@@ -431,12 +439,11 @@ void loop() {
     String command = dataFromUSB[0];
     int argument = 0;//distance or angle
     int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
-
     if (command == "f")           //forward
     {
       argument = dataFromUSB[1].toInt();//distance
       moveStraight(GO_FORWARD, 1000, 128);
-      confirmationArgument = 1; //test value
+      confirmationArgument = argument; //test value
     }
     else if (command  == "b")      //backward
     {
@@ -474,9 +481,15 @@ void loop() {
     }
     else if (command == "s")    //sonars data sending
     {
-      sendUSB(data.sonar, 3, data.rowsSonar);
+      SerialUSB.print("Przod: ");
+      SerialUSB.println(readSonicForward());
+      SerialUSB.print("Prawy: ");
+      SerialUSB.println(readSonicRight());
+      SerialUSB.print("Lewy: ");
+      SerialUSB.println(readSonicLeft());
+      /*sendUSB(data.sonar, 3, data.rowsSonar);
       memset(data.sonar, 0, sizeof(data.sonar)); //clear data
-      data.rowsSonar = 0;
+      data.rowsSonar = 0;*/
     }
     sendConfirmation(command, confirmationArgument);
     clearDataFromUSB();

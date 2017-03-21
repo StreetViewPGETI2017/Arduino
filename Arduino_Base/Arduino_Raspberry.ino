@@ -1,11 +1,15 @@
 void recieveUSB() //USB data receive event function
 {
-  String inString = "";
-  for (int i = 0; SerialUSB.available() && i < RX_SIZE; i++)
+  char inString;
+  for (int i = 0; i < RX_SIZE; i++)
   {
-    inString = String(SerialUSB.read());
-    if (inString == END_OF_MESSAGE)break;
-    dataFromUSB[i] = inString;
+    inString = SerialUSB.read();
+    if (inString == 'x')i--;
+    else{
+       if (inString == END_OF_MESSAGE)break;  
+       dataFromUSB[i] = inString;
+    }
+    inString = 'x';
   }
   received = true;
 }
