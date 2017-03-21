@@ -379,7 +379,6 @@ void rotateCamera() //rotates camera
 
 void setup() {
   SerialUSB.begin(9600);           // set up SerialUSB library at 9600 bps
-  SerialUSB.println("Adafruit Motorshield v2 - DC Motor test!");
 
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
@@ -394,7 +393,7 @@ void setup() {
 
   Serial.begin(115200);
   pinMode (STATUS_LED,OUTPUT);  // Status LED
-
+/*
   I2C_Init();
 
   digitalWrite(STATUS_LED,LOW);
@@ -429,7 +428,7 @@ void setup() {
 
   timer=millis();
   delay(20);
-  counter=0;
+  counter=0;*/
   //your own initializattion code
 }
 
