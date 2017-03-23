@@ -1,0 +1,12 @@
+odbiór przez USB
+---------------jazda robotem--------------
+f - przód
+b - ty³
+l - lewo
+r - prawo
+---------------kamera---------------------
+p - obrót
+w - potwierdzenie od Raspberry
+---------------inne-----------------------
+$ - koniec komunikatu
+d - proœba o dane

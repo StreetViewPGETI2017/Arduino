@@ -6,4 +6,15 @@ l - lewo
 r - prawo
 ---------------kamera---------------------
 p - obrót
+<<<<<<< HEAD:Arduino_Base/komendy.txt
 w - czekanie na potwierdzenie od Raspberry
+=======
+w - potwierdzenie od Raspberry
+---------------dane-----------------------
+i - proœba o dane z IMU(kolejnoœæ wysy³ania:akcelerometr,magnetometr,¿yroskop)
+e - proœba o dane z enkoderów(1,2)
+s - proœba o dane z sonaru(kolejnoœæ:przód, lewy, prawy)
+---------------inne-----------------------
+$ - koniec komunikatu
+
+>>>>>>> 0412a88c503de67377eef0dcd649416ce296426b:komendy.txt
