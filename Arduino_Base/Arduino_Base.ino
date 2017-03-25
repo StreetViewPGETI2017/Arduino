@@ -450,13 +450,13 @@ void loop() {
     else if (command == "l")       //left
     {
       argument = dataFromUSB[1].toInt();//angle
-      turn(TURN_LEFT, 1000, 64);
+      turn(TURN_LEFT, 1000, 128);
       confirmationArgument = 2; //test value
     }
     else if (command  == "r")      //right
     {
       argument = dataFromUSB[1].toInt();//angle
-      turn(TURN_RIGHT, 1000, 64);
+      turn(TURN_RIGHT, 1000, 128);
       confirmationArgument = 2; //test value
     }
     else if (command  == "p")     //camera rotation
