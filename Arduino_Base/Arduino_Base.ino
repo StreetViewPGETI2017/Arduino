@@ -14,9 +14,6 @@
 #define SERVO_PIN 9
 #define WAIT_TIME 10000
 
-#define SERVO_START_POS 50
-#define SERVO_END_POS 165
-
 #define trigPinForward 2
 #define echoPinForward 3
 #define trigPinLeft 6
@@ -24,7 +21,7 @@
 #define trigPinRight 4
 #define echoPinRight 5
 
-#define END_OF_MESSAGE '$'
+#define END_OF_MESSAGE 'E'
 #define RX_SIZE 3
 #define TX_SIZE 20
 
@@ -149,8 +146,17 @@ float Temporary_Matrix[3][3]={
 };
 
 String dataFromUSB[RX_SIZE] = {"", "", ""};; //0 - code, 1-argument, 2-argument
+
+struct DataReadUSB //structure for reading USB command, arguments
+{
+  char commandName;
+  int arguments[RX_SIZE];
+};
+
+DataReadUSB dataReadFromUSB;
+
 volatile bool received = false;
-struct dataToUSB {
+struct DataToUSB {
   //counts how many rows is filled:
   int rowsIMU = 0;
   int rowsEncoder = 0;
@@ -163,7 +169,7 @@ struct dataToUSB {
   int sonar[TX_SIZE][3];//forward,left,right
   int encoder[TX_SIZE][3];//only two encoders, but function accepts three
 };
-dataToUSB data;
+DataToUSB data;
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
@@ -175,6 +181,7 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 Servo cameraServo; // create servo object to control a servo
 
 int servoTurn = 5;
+
 
 void readIMU(){
   if((millis()-timer)>=20)  // Main loop runs at 50Hz
@@ -341,10 +348,10 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
   motorBL->run(RELEASE);
 }
 
-void rotateCamera() //rotates camera
+void rotateCamera(int cameraDirection) //rotates camera
 {
   
-  for (int i = 0; i < 10; ++i)
+  /*for (int i = 0; i < 10; ++i)
     {
     cameraServo.write(97);
     //waitForRaspberry();
@@ -370,11 +377,23 @@ void rotateCamera() //rotates camera
         printdata();
     }
     delay(500);
+    }*/
+    //cameraStep = 1.5;
+    //SerialUSB.println(cameraDirection);
+    cameraServo.write(95.5+cameraDirection*1.5);
+    //waitForRaspberry();
+    delay(500+(-1+cameraDirection)*50);
+    cameraServo.write(95.5);
+    for (int j = 0; j <20; ++j)
+    {
+        readIMU();
+        printdata();
     }
+    delay(500);
 }
 
 void setup() {
-  SerialUSB.begin(115200);           // set up SerialUSB library at 9600 bps
+  SerialUSB.begin(9600);           // set up SerialUSB library at 9600 bps
 
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
@@ -438,13 +457,13 @@ void loop() {
     if (command == "f")           //forward
     {
       argument = dataFromUSB[1].toInt();//distance
-      moveStraight(GO_FORWARD, 1000, 128);
+      moveStraight(GO_FORWARD, 1000, 172);
       confirmationArgument = argument; //test value
     }
     else if (command  == "b")      //backward
     {
       argument = dataFromUSB[1].toInt();//distance
-      moveStraight(GO_BACKWARD, 1000, 128);
+      moveStraight(GO_BACKWARD, 1000, 172);
       confirmationArgument = 1; //test value
     }
     else if (command == "l")       //left
@@ -459,9 +478,13 @@ void loop() {
       turn(TURN_RIGHT, 1000, 128);
       confirmationArgument = 2; //test value
     }
-    else if (command  == "p")     //camera rotation
+    else if (command  == "p")     //camera rotation right
     {
-      rotateCamera();
+      rotateCamera(1);
+    }
+    else if (command  == "q")     //camera rotation left
+    {
+      rotateCamera(-1);
     }
     else if (command == "i")      //IMU data sending
     {
@@ -481,11 +504,11 @@ void loop() {
     }
     else if (command == "s")    //sonars data sending
     {
-      SerialUSB.print("Przod: ");
+      SerialUSB.print("Forward: ");
       SerialUSB.println(readSonicForward());
-      SerialUSB.print("Prawy: ");
+      SerialUSB.print("Right: ");
       SerialUSB.println(readSonicRight());
-      SerialUSB.print("Lewy: ");
+      SerialUSB.print("Left: ");
       SerialUSB.println(readSonicLeft());
       /*sendUSB(data.sonar, 3, data.rowsSonar);
       memset(data.sonar, 0, sizeof(data.sonar)); //clear data

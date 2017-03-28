@@ -13,6 +13,26 @@ void recieveUSB() //USB data receive event function
        i++;
     }
   }
+  /*char readChar = ' ';
+  if(SerialUSB.available()) 
+  {
+    readChar = SerialUSB.read();
+    dataReadFromUSB.commandName = readChar;
+  }
+  int i = 0;
+  while(i<RX_SIZE && SerialUSB.available()) //waits to end of message or end of space
+  { 
+      dataReadFromUSB.arguments[i] = Serial.parseInt();
+      SerialUSB.print("wartosc otrzyman: ");
+      SerialUSB.println(dataReadFromUSB.arguments[i]);
+      ++i;
+  }
+  while (Serial.available() > 0)  // .parseFloat() can leave non-numeric characters
+  { 
+     readChar = Serial.read() ; // clear the keyboard buffer
+     if(readChar == END_OF_MESSAGE)break;
+  }      
+  */
   received = true;
 }
 void sendUSB(int data[][3], int cells, int rows)
