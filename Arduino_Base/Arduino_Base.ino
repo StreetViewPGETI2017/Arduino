@@ -22,7 +22,7 @@
 #define echoPinRight 5
 
 #define END_OF_MESSAGE 'E'
-#define RX_SIZE 3
+#define RX_SIZE 10
 #define TX_SIZE 20
 
 #define IMU_V5
@@ -145,17 +145,14 @@ float Temporary_Matrix[3][3]={
     0,0,0  }
 };
 
-String dataFromUSB[RX_SIZE] = {"", "", ""};; //0 - code, 1-argument, 2-argument
-
-struct DataReadUSB //structure for reading USB command, arguments
+struct dataFromUSB //structure for reading USB command, arguments
 {
-  char commandName;
-  int arguments[RX_SIZE];
+  String command = "";
+  int argument = 0 ;
+  bool received = 0;
 };
+dataFromUSB fromUSB;
 
-DataReadUSB dataReadFromUSB;
-
-volatile bool received = false;
 struct DataToUSB {
   //counts how many rows is filled:
   int rowsIMU = 0;
@@ -450,43 +447,37 @@ void setup() {
 void loop() {
   readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
-  if (received) {
-    String command = dataFromUSB[0];
-    int argument = 0;//distance or angle
+  if (fromUSB.received) {
     int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
-    if (command == "f")           //forward
+    if (fromUSB.command == "f")           //forward
     {
-      argument = dataFromUSB[1].toInt();//distance
       moveStraight(GO_FORWARD, 1000, 172);
-      confirmationArgument = argument; //test value
+      confirmationArgument = fromUSB.argument; //test value
     }
-    else if (command  == "b")      //backward
+    else if (fromUSB.command  == "b")      //backward
     {
-      argument = dataFromUSB[1].toInt();//distance
       moveStraight(GO_BACKWARD, 1000, 172);
-      confirmationArgument = 1; //test value
+      confirmationArgument = fromUSB.argument;; //test value
     }
-    else if (command == "l")       //left
+    else if (fromUSB.command == "l")       //left
     {
-      argument = dataFromUSB[1].toInt();//angle
       turn(TURN_LEFT, 1000, 128);
-      confirmationArgument = 2; //test value
+      confirmationArgument = fromUSB.argument;; //test value
     }
-    else if (command  == "r")      //right
+    else if (fromUSB.command  == "r")      //right
     {
-      argument = dataFromUSB[1].toInt();//angle
       turn(TURN_RIGHT, 1000, 128);
-      confirmationArgument = 2; //test value
+      confirmationArgument = fromUSB.argument;; //test value
     }
-    else if (command  == "p")     //camera rotation right
+    else if (fromUSB.command  == "p")     //camera rotation right
     {
       rotateCamera(1);
     }
-    else if (command  == "q")     //camera rotation left
+    else if (fromUSB.command  == "q")     //camera rotation left
     {
       rotateCamera(-1);
     }
-    else if (command == "i")      //IMU data sending
+    else if (fromUSB.command == "i")      //IMU data sending
     {
      // readIMU();
       /*sendUSB(data.imu, 3, data.rowsIMU);
@@ -496,13 +487,13 @@ void loop() {
       SerialUSB.println(ToDeg(pitch));
       SerialUSB.println(ToDeg(yaw));
     }
-    else if (command == "e")    //encoders data sending
+    else if (fromUSB.command == "e")    //encoders data sending
     {
       sendUSB(data.encoder, 2, data.rowsEncoder);
       memset(data.encoder, 0, sizeof(data.encoder)); //clear data
       data.rowsEncoder = 0;
     }
-    else if (command == "s")    //sonars data sending
+    else if (fromUSB.command == "s")    //sonars data sending
     {
       SerialUSB.print("Forward: ");
       SerialUSB.println(readSonicForward());
@@ -514,7 +505,8 @@ void loop() {
       memset(data.sonar, 0, sizeof(data.sonar)); //clear data
       data.rowsSonar = 0;*/
     }
-    sendConfirmation(command, confirmationArgument);
+    sendConfirmation(fromUSB.command, confirmationArgument);
     clearDataFromUSB();
   }
 }
+

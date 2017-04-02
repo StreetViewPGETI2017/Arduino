@@ -2,38 +2,30 @@ void recieveUSB() //USB data receive event function
 {
   char readChar;
   int i = 0;
-  while(i<RX_SIZE) //waits to end of message or end of space
+  bool minus = false;//if argument is negative
+  int power = 0, argument = 0;
+  while (i < RX_SIZE) //waits to end of message or end of space
   {
     readChar = ' ';
-    if(SerialUSB.available()) readChar = SerialUSB.read();
-    if(readChar == END_OF_MESSAGE)break;
-    else if(readChar != ' ')
+    if (SerialUSB.available()) readChar = SerialUSB.read();
+    if (readChar == END_OF_MESSAGE)break;
+    else if (readChar != ' ')
     {
-       dataFromUSB[i] = readChar;
-       i++;
+      int ascii = (int)readChar;
+      if (ascii == 45)minus = true; //if char is '-'
+      else if (ascii >= 48 && ascii <= 57) //if char is 0-9
+      {
+        ascii -= 48;//set as normal number
+        argument += ascii * pow(10, power); //calculate positions of base 10 number
+        power += 1;
+      }
+      else fromUSB.command = readChar;
+      i++;
     }
   }
-  /*char readChar = ' ';
-  if(SerialUSB.available()) 
-  {
-    readChar = SerialUSB.read();
-    dataReadFromUSB.commandName = readChar;
-  }
-  int i = 0;
-  while(i<RX_SIZE && SerialUSB.available()) //waits to end of message or end of space
-  { 
-      dataReadFromUSB.arguments[i] = Serial.parseInt();
-      SerialUSB.print("wartosc otrzyman: ");
-      SerialUSB.println(dataReadFromUSB.arguments[i]);
-      ++i;
-  }
-  while (Serial.available() > 0)  // .parseFloat() can leave non-numeric characters
-  { 
-     readChar = Serial.read() ; // clear the keyboard buffer
-     if(readChar == END_OF_MESSAGE)break;
-  }      
-  */
-  received = true;
+  if (minus)argument *= -1; //negative number
+    fromUSB.argument = argument;
+  fromUSB.received = true;
 }
 void sendUSB(int data[][3], int cells, int rows)
 {
@@ -50,7 +42,7 @@ bool waitForRaspberry(int waitTime)
   int wait = 0;
   while (wait != waitTime) //waits for Raspberry confirmation
   {
-    if (received &&  dataFromUSB[0] == "w")
+    if (fromUSB.received &&  fromUSB.command == "w")
     {
       clearDataFromUSB();
       return 0;//success
@@ -65,9 +57,9 @@ bool waitForRaspberry(int waitTime)
 }
 void clearDataFromUSB()
 {
-  for (int i = 0; i < RX_SIZE; i++)
-    dataFromUSB[i] = "";
-  received = false;
+  fromUSB.command = ' ';
+  fromUSB.argument = 0;
+  fromUSB.received = false;
 }
 void sendConfirmation(String command, int argument)//confirms execution of command
 {
@@ -75,4 +67,5 @@ void sendConfirmation(String command, int argument)//confirms execution of comma
   SerialUSB.println(argument);
   SerialUSB.println(END_OF_MESSAGE);
 }
+
 
