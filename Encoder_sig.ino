@@ -23,3 +23,4 @@
    half_revolutions++;
    Serial.println("detect");
  }
+
