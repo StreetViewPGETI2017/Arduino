@@ -31,8 +31,7 @@
 #define RX_SIZE 10//how large is buffor of receiving messages from USB
 #define TX_SIZE 20//                    of sending messages to USB
 
-#define WHEEL_RADIUS 3//radius in cm
-#define ENCODER_POLES 8
+
 
 #define IMU_V5
 
@@ -93,6 +92,15 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 #define PRINT_EULER 1   //Will print the Euler angles Roll, Pitch and Yaw
 
 #define STATUS_LED 13
+
+//CONTROL DEFINITIONS:
+#define WHEEL_RADIUS 5.5 //radius in cm
+#define ENCODER_POLES 8
+#define fixedErrorPID 4.5 //error between given value and recived on which computing stops
+#define Kp 10
+#define Ki 5
+#define Kd 0.000003
+#define maxPIDsteps 5000 // after cross over of this value robot stops
 
 float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
@@ -197,6 +205,8 @@ int encoderPinR = 11;
 
 volatile int lCount = 0;
 volatile int rCount = 0;
+double distanceDrivenL = 0;
+double distanceDrivenR = 0;
 
 int previousStateEncL = LOW;
 int previousStateEncR = LOW;
@@ -326,11 +336,14 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
 void tickL()
 {
   lCount++;
+  distanceDrivenL =  2 * 3.14159 * WHEEL_RADIUS * lCount * 1/ENCODER_POLES;
 }
 
 void tickR()
 {
   rCount++;
+  distanceDrivenR =  2 * 3.14159 * WHEEL_RADIUS * rCount * 1/ENCODER_POLES;
+
 }
 
 /*void getEncoderPosition(){
@@ -356,18 +369,15 @@ void tickR()
   }
   }*/
 
-#define fixedErrorPID 3 //error between given value and recived on which computing stops
-#define Kp 10
-#define Ki 5
-#define Kd 0.000003
-#define maxPIDsteps 500 // after cross over of this value robot stops
-double moveStraight(int moveDirection, double distance)
+
+
+void moveStraight(int moveDirection, double distance)
 {
   rCount = 0;
   lCount = 0;
-  double distanceDriven = 0, velocity = 0;
+  double velocity = 0;
   int stepsMade = 0;
-  PID myPID(&distanceDriven, &velocity, &distance, Kp, Ki, Kd, DIRECT);
+  PID myPID(&distanceDrivenL, &velocity, &distance, Kp, Ki, Kd, DIRECT);
   myPID.SetMode(AUTOMATIC);
 
   if (moveDirection == GO_FORWARD)
@@ -385,27 +395,21 @@ double moveStraight(int moveDirection, double distance)
     motorBL->run(FORWARD);
   }
 
-  while (abs(distance - distanceDriven) >= fixedErrorPID && stepsMade < maxPIDsteps)
+  while (abs(distance - distanceDrivenL) >= fixedErrorPID && stepsMade < maxPIDsteps)
   {
-    distanceDriven +=  2 * 3.14159 * WHEEL_RADIUS * lCount * 0.125;
-    SerialUSB.println(distanceDriven);
-    SerialUSB.println(lCount);
-
-    // myPID.Compute();
-    velocity = 100;
+    myPID.Compute();
 
     motorFR->setSpeed(velocity); //motor speed
     motorFL->setSpeed(velocity);
     motorBR->setSpeed(velocity);
     motorBL->setSpeed(velocity);
     stepsMade++;
-
   }
   motorFR->setSpeed(0); //motor speed
   motorFL->setSpeed(0);
   motorBR->setSpeed(0);
   motorBL->setSpeed(0);
-  return distanceDriven;
+ // return distanceDrivenL;
   /*
     uint8_t i;
     rCount = 0;
@@ -622,15 +626,18 @@ void loop() {
   //readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (fromUSB.received) {
-    double confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
+    int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
     if (fromUSB.command == "f")           //forward
     {
-      confirmationArgument = moveStraight(GO_FORWARD, fromUSB.argument);
-      confirmationArgument = 3.4;
+      moveStraight(GO_FORWARD, fromUSB.argument);
+      confirmationArgument = distanceDrivenL;
+      distanceDrivenL = 0;
     }
     else if (fromUSB.command  == "b")      //backward
     {
-      confirmationArgument = moveStraight(GO_BACKWARD, fromUSB.argument);
+      moveStraight(GO_BACKWARD, fromUSB.argument);
+      confirmationArgument = distanceDrivenL;
+      distanceDrivenL = 0;
     }
     else if (fromUSB.command == "l")       //left
     {
@@ -680,7 +687,6 @@ void loop() {
         memset(data.sonar, 0, sizeof(data.sonar)); //clear data
         data.rowsSonar = 0;*/
     }
-    SerialUSB.println(confirmationArgument);
     sendConfirmation(fromUSB.command, confirmationArgument);
     clearDataFromUSB();
   }
