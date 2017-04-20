@@ -336,13 +336,13 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
 void tickL()
 {
   lCount++;
-  distanceDrivenL =  2 * 3.14159 * WHEEL_RADIUS * lCount * 1/ENCODER_POLES;
+  distanceDrivenL =  2 * 3.14159 * WHEEL_RADIUS * lCount * 1 / ENCODER_POLES;
 }
 
 void tickR()
 {
   rCount++;
-  distanceDrivenR =  2 * 3.14159 * WHEEL_RADIUS * rCount * 1/ENCODER_POLES;
+  distanceDrivenR =  2 * 3.14159 * WHEEL_RADIUS * rCount * 1 / ENCODER_POLES;
 
 }
 
@@ -380,6 +380,8 @@ void moveStraight(int moveDirection, double distance)
   PID myPID(&distanceDrivenL, &velocity, &distance, Kp, Ki, Kd, DIRECT);
   myPID.SetMode(AUTOMATIC);
 
+  float goFR = 1, goFL = 1, goBR = 1, goBL = 1; //used to correct path if encoders have different values
+
   if (moveDirection == GO_FORWARD)
   {
     motorFR->run(FORWARD); //set direction of motor
@@ -398,73 +400,29 @@ void moveStraight(int moveDirection, double distance)
   while (abs(distance - distanceDrivenL) >= fixedErrorPID && stepsMade < maxPIDsteps)
   {
     myPID.Compute();
-    if(velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
-    if(detectObstacle(moveDirection,30)) break; //evading of obstacles
+    if (velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
+    if (detectObstacle(moveDirection, 30)) break; //evading of obstacles
+    if (abs(lCount - rCount) > 1) //prevents of different positions left and right wheel, max error is one position
+    {
+      if (lCount > rCount) //go more to left side
+      {
+        goFR = 1; goFL = 0.8; goBR = 1; goBL = 0.8;
+      }
+      else if (lCount < rCount) //go more to right side
+      {
+        goFR = 0.8; goFL = 1; goBR = 0.8; goBL = 1;
+      }
+    }
+    else {
+      goFR = 1, goFL = 1, goBR = 1, goBL = 1;
+    }
 
-    motorFR->setSpeed(velocity); //motor speed
-    motorFL->setSpeed(velocity);
-    motorBR->setSpeed(velocity);
-    motorBL->setSpeed(velocity);
+    motorFR->setSpeed(goFR * velocity); //motor speed
+    motorFL->setSpeed(goFL * velocity);
+    motorBR->setSpeed(goBR * velocity);
+    motorBL->setSpeed(goBL * velocity);
     stepsMade++;
   }
-  motorFR->setSpeed(0); //motor speed
-  motorFL->setSpeed(0);
-  motorBR->setSpeed(0);
-  motorBL->setSpeed(0);
- // return distanceDrivenL;
-  /*
-    uint8_t i;
-    rCount = 0;
-    lCount = 0;
-    if (moveDirection == GO_FORWARD)
-    {
-      motorFR->run(FORWARD); //set direction of motor
-      motorFL->run(FORWARD);
-      motorBR->run(BACKWARD);
-      motorBL->run(BACKWARD);
-    }
-    else if (moveDirection == GO_BACKWARD)
-    {
-      motorFR->run(BACKWARD);
-      motorFL->run(BACKWARD);
-      motorBR->run(FORWARD);
-      motorBL->run(FORWARD);
-    }
-
-    /*for (i = 0; i < maxSpeed; i++)
-      {
-      motorFR->setSpeed(i); //motor speed
-      motorFL->setSpeed(i);
-      motorBR->setSpeed(i);
-      motorBL->setSpeed(i);
-      delay(10);
-      }*//*
-  motorFR->setSpeed(maxSpeed); //motor speed
-  motorFL->setSpeed(maxSpeed);
-  motorBR->setSpeed(maxSpeed);
-  motorBL->setSpeed(maxSpeed);
-
-  int interval = 100;
-  int times = driveTimems / timer;
-  /*int lCount = 0;
-    int rCount = 0;*//*
-  for (int i = 0; i < 10; ++i)
-  {
-
-    //getEncoderPosition();
-    if (moveDirection == GO_FORWARD && detectObstacle(moveDirection, 30))  //obstacle evading - front (backwards is unnecessary)
-      break;
-    delay(interval);
-  }
-  //delay(1000);
-  /*for (i = maxSpeed; i != 0; i--)
-    {
-    motorFR->setSpeed(i);
-    motorFL->setSpeed(i);
-    motorBR->setSpeed(i);
-    motorBL->setSpeed(i);
-    delay(10);
-    }*//*
   motorFR->setSpeed(0); //motor speed
   motorFL->setSpeed(0);
   motorBR->setSpeed(0);
@@ -474,11 +432,6 @@ void moveStraight(int moveDirection, double distance)
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
-
-  SerialUSB.print("Right: ");
-  SerialUSB.println(rCount);
-  SerialUSB.print("Left: " );
-  SerialUSB.println(lCount);*/
 }
 
 void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwise
