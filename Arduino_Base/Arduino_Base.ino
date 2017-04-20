@@ -99,8 +99,9 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 #define fixedErrorPID 4.5 //error between given value and recived on which computing stops
 #define Kp 10
 #define Ki 5
-#define Kd 0.000003
-#define maxPIDsteps 5000 // after cross over of this value robot stops
+#define Kd 0.003
+#define maxPIDsteps 5000 // after cross over of this value robot stops,
+#define MAX_VELOCITY 200 // total max is 255
 
 float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
@@ -179,7 +180,6 @@ dataFromUSB fromUSB;
 struct DataToUSB {
   //counts how many rows is filled:
   int rowsIMU = 0;
-  int rowsEncoder = 0;
   int rowsSonar = 0;
   //data storage:
   int imu[TX_SIZE][3];//accelerometer,magnetometer,gyroscope
@@ -398,6 +398,7 @@ void moveStraight(int moveDirection, double distance)
   while (abs(distance - distanceDrivenL) >= fixedErrorPID && stepsMade < maxPIDsteps)
   {
     myPID.Compute();
+    if(velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
 
     motorFR->setSpeed(velocity); //motor speed
     motorFL->setSpeed(velocity);
