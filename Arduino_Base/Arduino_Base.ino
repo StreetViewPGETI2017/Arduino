@@ -399,6 +399,7 @@ void moveStraight(int moveDirection, double distance)
   {
     myPID.Compute();
     if(velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
+    if(detectObstacle(moveDirection,30)) break; //evading of obstacles
 
     motorFR->setSpeed(velocity); //motor speed
     motorFL->setSpeed(velocity);
