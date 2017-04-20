@@ -8,13 +8,16 @@
 #include <Servo.h>
 //#include <RedBot.h>
 //#include <Encoder.h>
+#include <PID_v1.h>
+
 
 #define GO_FORWARD 1
 #define GO_BACKWARD 2
 #define TURN_LEFT 3
 #define TURN_RIGHT 4
 #define SERVO_PIN 9
-#define WAIT_TIME 10000
+
+#define WAIT_TIME 10000 //how much time should wait for Raspberry(for receive command 'w')
 
 #define trigPinForward 2
 #define echoPinForward 3
@@ -24,23 +27,27 @@
 #define echoPinRight 5
 
 #define END_OF_MESSAGE 'E'
-#define RX_SIZE 10
-#define TX_SIZE 20
+
+#define RX_SIZE 10//how large is buffor of receiving messages from USB
+#define TX_SIZE 20//                    of sending messages to USB
+
+#define WHEEL_RADIUS 3//radius in cm
+#define ENCODER_POLES 8
 
 #define IMU_V5
 
 // Uncomment the below line to use this axis definition:
-   // X axis pointing forward
-   // Y axis pointing to the right
-   // and Z axis pointing down.
+// X axis pointing forward
+// Y axis pointing to the right
+// and Z axis pointing down.
 // Positive pitch : nose up
 // Positive roll : right wing down
 // Positive yaw : clockwise
-int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
 // Uncomment the below line to use this axis definition:
-   // X axis pointing forward
-   // Y axis pointing to the left
-   // and Z axis pointing up.
+// X axis pointing forward
+// Y axis pointing to the left
+// and Z axis pointing up.
 // Positive pitch : nose down
 // Positive roll : right wing down
 // Positive yaw : counterclockwise
@@ -87,13 +94,13 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 
 #define STATUS_LED 13
 
-float G_Dt=0.02;    // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
+float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
-long timer=0;   //general purpuse timer
+long timer = 0; //general purpuse timer
 long timer_old;
-long timer24=0; //Second timer used to print values
+long timer24 = 0; //Second timer used to print values
 int AN[6]; //array that stores the gyro and accelerometer data
-int AN_OFFSET[6]={0,0,0,0,0,0}; //Array that stores the Offset of the sensors
+int AN_OFFSET[6] = {0, 0, 0, 0, 0, 0}; //Array that stores the Offset of the sensors
 
 int gyro_x;
 int gyro_y;
@@ -109,42 +116,48 @@ float c_magnetom_y;
 float c_magnetom_z;
 float MAG_Heading;
 
-float Accel_Vector[3]= {0,0,0}; //Store the acceleration in a vector
-float Gyro_Vector[3]= {0,0,0};//Store the gyros turn rate in a vector
-float Omega_Vector[3]= {0,0,0}; //Corrected Gyro_Vector data
-float Omega_P[3]= {0,0,0};//Omega Proportional correction
-float Omega_I[3]= {0,0,0};//Omega Integrator
-float Omega[3]= {0,0,0};
+float Accel_Vector[3] = {0, 0, 0}; //Store the acceleration in a vector
+float Gyro_Vector[3] = {0, 0, 0}; //Store the gyros turn rate in a vector
+float Omega_Vector[3] = {0, 0, 0}; //Corrected Gyro_Vector data
+float Omega_P[3] = {0, 0, 0}; //Omega Proportional correction
+float Omega_I[3] = {0, 0, 0}; //Omega Integrator
+float Omega[3] = {0, 0, 0};
 
 // Euler angles
 float roll;
 float pitch;
 float yaw;
 
-float errorRollPitch[3]= {0,0,0};
-float errorYaw[3]= {0,0,0};
+float errorRollPitch[3] = {0, 0, 0};
+float errorYaw[3] = {0, 0, 0};
 
-unsigned int counter=0;
-byte gyro_sat=0;
+unsigned int counter = 0;
+byte gyro_sat = 0;
 
-float DCM_Matrix[3][3]= {
+float DCM_Matrix[3][3] = {
   {
-    1,0,0  }
-  ,{
-    0,1,0  }
-  ,{
-    0,0,1  }
+    1, 0, 0
+  }
+  , {
+    0, 1, 0
+  }
+  , {
+    0, 0, 1
+  }
 };
-float Update_Matrix[3][3]={{0,1,2},{3,4,5},{6,7,8}}; //Gyros here
+float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}}; //Gyros here
 
 
-float Temporary_Matrix[3][3]={
+float Temporary_Matrix[3][3] = {
   {
-    0,0,0  }
-  ,{
-    0,0,0  }
-  ,{
-    0,0,0  }
+    0, 0, 0
+  }
+  , {
+    0, 0, 0
+  }
+  , {
+    0, 0, 0
+  }
 };
 
 struct dataFromUSB //structure for reading USB command, arguments
@@ -182,8 +195,8 @@ Servo cameraServo; // create servo object to control a servo
 int encoderPinL = 10;
 int encoderPinR = 11;
 
-int lCount = 0;
-int rCount = 0;
+volatile int lCount = 0;
+volatile int rCount = 0;
 
 int previousStateEncL = LOW;
 int previousStateEncR = LOW;
@@ -192,53 +205,53 @@ int previousStateEncR = LOW;
 //RedBotEncoder encoder = RedBotEncoder(A1, A2);  //left encoder, right encoder;
 /*Encoder myEnc(10, 11);
 
-long oldPosition  = -999;
-unsigned long oldTime = 0;
+  long oldPosition  = -999;
+  unsigned long oldTime = 0;
 
-double countsPerRevolution = 48.0; // encoder counts per revolution of the motor shaft
-double gearRatio = 75.0; // the gear ratio of the motor is 75:1*/
+  double countsPerRevolution = 48.0; // encoder counts per revolution of the motor shaft
+  double gearRatio = 75.0; // the gear ratio of the motor is 75:1*/
 
 int servoTurn = 5;
 
 
-void readIMU(){
-  if((millis()-timer)>=20)  // Main loop runs at 50Hz
+void readIMU() {
+  if ((millis() - timer) >= 20) // Main loop runs at 50Hz
+  {
+    counter++;
+    timer_old = timer;
+    timer = millis();
+    if (timer > timer_old)
     {
-      counter++;
-      timer_old = timer;
-      timer=millis();
-      if (timer>timer_old)
-      {
-        G_Dt = (timer-timer_old)/1000.0;    // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
-        if (G_Dt > 0.2)
-          G_Dt = 0; // ignore integration times over 200 ms
-      }
-      else
-        G_Dt = 0;
-  
-      // *** DCM algorithm
-      // Data adquisition
-      Read_Gyro();   // This read gyro data
-      Read_Accel();     // Read I2C accelerometer
-  
-      if (counter > 5)  // Read compass data at 10Hz... (5 loop runs)
-      {
-        counter=0;
-        Read_Compass();    // Read I2C magnetometer
-        Compass_Heading(); // Calculate magnetic heading
-      }
-  
-      // Calculations...
-      Matrix_update();
-      Normalize();
-      Drift_correction();
-      Euler_angles();
-      // ***
-  //for (int i = 0; i < 100; ++i)
-      //printdata();
+      G_Dt = (timer - timer_old) / 1000.0; // Real time of loop run. We use this on the DCM algorithm (gyro integration time)
+      if (G_Dt > 0.2)
+        G_Dt = 0; // ignore integration times over 200 ms
+    }
+    else
+      G_Dt = 0;
+
+    // *** DCM algorithm
+    // Data adquisition
+    Read_Gyro();   // This read gyro data
+    Read_Accel();     // Read I2C accelerometer
+
+    if (counter > 5)  // Read compass data at 10Hz... (5 loop runs)
+    {
+      counter = 0;
+      Read_Compass();    // Read I2C magnetometer
+      Compass_Heading(); // Calculate magnetic heading
+    }
+
+    // Calculations...
+    Matrix_update();
+    Normalize();
+    Drift_correction();
+    Euler_angles();
+    // ***
+    //for (int i = 0; i < 100; ++i)
+    //printdata();
   }
 }
- 
+
 long* readSonicData() {
   //long forwardDistance, leftDistance, rightDistance;
 
@@ -299,14 +312,14 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
 {
   int counter = 0;
   for (int j = 0; j < 10; ++j)
-     if (moveDirection == GO_FORWARD && readSonicForward() < distance)
-        ++counter;
-     else if (moveDirection == TURN_LEFT && readSonicLeft() < distance)
-        ++counter;
-     else if (moveDirection == TURN_RIGHT && readSonicRight() < distance)
-        ++counter;
+    if (moveDirection == GO_FORWARD && readSonicForward() < distance)
+      ++counter;
+    else if (moveDirection == TURN_LEFT && readSonicLeft() < distance)
+      ++counter;
+    else if (moveDirection == TURN_RIGHT && readSonicRight() < distance)
+      ++counter;
   if (counter > 5 )
-     return 1;
+    return 1;
   return 0;
 }
 
@@ -321,12 +334,12 @@ void tickR()
 }
 
 /*void getEncoderPosition(){
-  
+
   //Read encoder counts
   long newPosition = myEnc.read();
   Serial.print("Current encoder count: ");
   Serial.println(newPosition);
- 
+
   //Get current time
   unsigned long newTime = millis();
 
@@ -341,13 +354,22 @@ void tickR()
     Serial.println(((newPosition-oldPosition)/(countsPerRevolution*gearRatio))/timeElapsed);
     oldPosition = newPosition;
   }
-}*/
+  }*/
 
-void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
+#define fixedErrorPID 3 //error between given value and recived on which computing stops
+#define Kp 10
+#define Ki 5
+#define Kd 0.000003
+#define maxPIDsteps 500 // after cross over of this value robot stops
+double moveStraight(int moveDirection, double distance)
 {
-  uint8_t i;
   rCount = 0;
   lCount = 0;
+  double distanceDriven = 0, velocity = 0;
+  int stepsMade = 0;
+  PID myPID(&distanceDriven, &velocity, &distance, Kp, Ki, Kd, DIRECT);
+  myPID.SetMode(AUTOMATIC);
+
   if (moveDirection == GO_FORWARD)
   {
     motorFR->run(FORWARD); //set direction of motor
@@ -363,45 +385,85 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
     motorBL->run(FORWARD);
   }
 
-  /*for (i = 0; i < maxSpeed; i++)
+  while (abs(distance - distanceDriven) >= fixedErrorPID && stepsMade < maxPIDsteps)
   {
-    motorFR->setSpeed(i); //motor speed
-    motorFL->setSpeed(i);
-    motorBR->setSpeed(i);
-    motorBL->setSpeed(i);
-    delay(10);
-  }*/
+    distanceDriven +=  2 * 3.14159 * WHEEL_RADIUS * lCount * 0.125;
+    SerialUSB.println(distanceDriven);
+    SerialUSB.println(lCount);
+
+    // myPID.Compute();
+    velocity = 100;
+
+    motorFR->setSpeed(velocity); //motor speed
+    motorFL->setSpeed(velocity);
+    motorBR->setSpeed(velocity);
+    motorBL->setSpeed(velocity);
+    stepsMade++;
+
+  }
+  motorFR->setSpeed(0); //motor speed
+  motorFL->setSpeed(0);
+  motorBR->setSpeed(0);
+  motorBL->setSpeed(0);
+  return distanceDriven;
+  /*
+    uint8_t i;
+    rCount = 0;
+    lCount = 0;
+    if (moveDirection == GO_FORWARD)
+    {
+      motorFR->run(FORWARD); //set direction of motor
+      motorFL->run(FORWARD);
+      motorBR->run(BACKWARD);
+      motorBL->run(BACKWARD);
+    }
+    else if (moveDirection == GO_BACKWARD)
+    {
+      motorFR->run(BACKWARD);
+      motorFL->run(BACKWARD);
+      motorBR->run(FORWARD);
+      motorBL->run(FORWARD);
+    }
+
+    /*for (i = 0; i < maxSpeed; i++)
+      {
+      motorFR->setSpeed(i); //motor speed
+      motorFL->setSpeed(i);
+      motorBR->setSpeed(i);
+      motorBL->setSpeed(i);
+      delay(10);
+      }*//*
   motorFR->setSpeed(maxSpeed); //motor speed
   motorFL->setSpeed(maxSpeed);
   motorBR->setSpeed(maxSpeed);
   motorBL->setSpeed(maxSpeed);
 
   int interval = 100;
-  int times = driveTimems/timer;
+  int times = driveTimems / timer;
   /*int lCount = 0;
-  int rCount = 0;*/
+    int rCount = 0;*//*
   for (int i = 0; i < 10; ++i)
   {
-     
-     //getEncoderPosition();
-     if(moveDirection == GO_FORWARD && detectObstacle(moveDirection, 30))   //obstacle evading - front (backwards is unnecessary)
-       break;
-     delay(interval);
+
+    //getEncoderPosition();
+    if (moveDirection == GO_FORWARD && detectObstacle(moveDirection, 30))  //obstacle evading - front (backwards is unnecessary)
+      break;
+    delay(interval);
   }
   //delay(1000);
   /*for (i = maxSpeed; i != 0; i--)
-  {
+    {
     motorFR->setSpeed(i);
     motorFL->setSpeed(i);
     motorBR->setSpeed(i);
     motorBL->setSpeed(i);
     delay(10);
-  }*/
+    }*//*
   motorFR->setSpeed(0); //motor speed
   motorFL->setSpeed(0);
   motorBR->setSpeed(0);
   motorBL->setSpeed(0);
-  
+
   motorFR->run(RELEASE); //realease motor
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
@@ -410,30 +472,30 @@ void moveStraight(int moveDirection, int driveTimems, int maxSpeed)
   SerialUSB.print("Right: ");
   SerialUSB.println(rCount);
   SerialUSB.print("Left: " );
-  SerialUSB.println(lCount);
+  SerialUSB.println(lCount);*/
 }
 
 void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwise
 {
   if (detectObstacle(turnDirection, 20))
-      return;
+    return;
   if (turnDirection == TURN_LEFT)
   {
-    
+
     motorFR->run(FORWARD);
     motorFL->run(BACKWARD);
     motorBR->run(BACKWARD);
     motorBL->run(FORWARD);
-    
+
   }
   else if (turnDirection == TURN_RIGHT)
   {
-    
+
     motorFR->run(BACKWARD);
     motorFL->run(FORWARD);
     motorBR->run(FORWARD);
     motorBL->run(BACKWARD);
-    
+
   }
 
   motorFR->setSpeed(turnSpeed);
@@ -452,7 +514,7 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
 
 void rotateCamera(int cameraDirection) //rotates camera
 {
-  
+
   /*for (int i = 0; i < 10; ++i)
     {
     cameraServo.write(97);
@@ -467,7 +529,7 @@ void rotateCamera(int cameraDirection) //rotates camera
     printdata();
     delay(500);
     }
-  for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 10; ++i)
     {
     cameraServo.write(94);
     //waitForRaspberry();
@@ -480,18 +542,18 @@ void rotateCamera(int cameraDirection) //rotates camera
     }
     delay(500);
     }*/
-    //cameraStep = 1.5;
-    //SerialUSB.println(cameraDirection);
-    cameraServo.write(95+cameraDirection*1.5);
-    //waitForRaspberry();
-    delay(500+(-1+cameraDirection)*50);
-    cameraServo.write(95);
-    for (int j = 0; j <20; ++j)
-    {
-        //readIMU();
-        //printdata();
-    }
-    delay(500);
+  //cameraStep = 1.5;
+  //SerialUSB.println(cameraDirection);
+  cameraServo.write(95 + cameraDirection * 1.5);
+  //waitForRaspberry();
+  delay(500 + (-1 + cameraDirection) * 50);
+  cameraServo.write(95);
+  for (int j = 0; j < 20; ++j)
+  {
+    //readIMU();
+    //printdata();
+  }
+  delay(500);
 }
 
 void setup() {
@@ -502,7 +564,7 @@ void setup() {
   AFMS.begin();  // create with the default frequency 1.6KHz
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(95);
- 
+
   pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
   pinMode(echoPinForward, INPUT);
   pinMode(trigPinLeft, OUTPUT);
@@ -510,17 +572,17 @@ void setup() {
   pinMode(trigPinRight, OUTPUT);
   pinMode(echoPinRight, INPUT);
 
-  pinMode(encoderPinL,INPUT);
-  pinMode(encoderPinR,INPUT);
-  attachInterrupt(encoderPinL, tickL, RISING);
-  attachInterrupt(encoderPinR, tickR, RISING);
+  pinMode(encoderPinL, INPUT);
+  pinMode(encoderPinR, INPUT);
+  attachInterrupt(encoderPinL, tickL, CHANGE);
+  attachInterrupt(encoderPinR, tickR, CHANGE);
 
   //Serial.begin(115200);
-  pinMode (STATUS_LED,OUTPUT);  // Status LED
+  pinMode (STATUS_LED, OUTPUT); // Status LED
 
   //I2C_Init();
 
-  digitalWrite(STATUS_LED,LOW);
+  digitalWrite(STATUS_LED, LOW);
   delay(1500);
 
   //Accel_Init();
@@ -538,21 +600,21 @@ void setup() {
     delay(20);
     }
 
-  for(int y=0; y<6; y++)
+    for(int y=0; y<6; y++)
     AN_OFFSET[y] = AN_OFFSET[y]/32;
 
-  AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
+    AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
 
-  //Serial.println("Offset:");
-  for(int y=0; y<6; y++)
+    //Serial.println("Offset:");
+    for(int y=0; y<6; y++)
     SerialUSB.println(AN_OFFSET[y]);*/
 
   delay(2000);
-  digitalWrite(STATUS_LED,HIGH);
+  digitalWrite(STATUS_LED, HIGH);
 
-  timer=millis();
+  timer = millis();
   delay(20);
-  counter=0;
+  counter = 0;
   //your own initializattion code
 }
 
@@ -560,16 +622,15 @@ void loop() {
   //readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (fromUSB.received) {
-    int confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
+    double confirmationArgument = 0;//distance or angle, changed on true value of move or rotation
     if (fromUSB.command == "f")           //forward
     {
-      moveStraight(GO_FORWARD, 1000, 172);
-      confirmationArgument = fromUSB.argument; //test value
+      confirmationArgument = moveStraight(GO_FORWARD, fromUSB.argument);
+      confirmationArgument = 3.4;
     }
     else if (fromUSB.command  == "b")      //backward
     {
-      moveStraight(GO_BACKWARD, 1000, 172);
-      confirmationArgument = fromUSB.argument;; //test value
+      confirmationArgument = moveStraight(GO_BACKWARD, fromUSB.argument);
     }
     else if (fromUSB.command == "l")       //left
     {
@@ -591,10 +652,10 @@ void loop() {
     }
     else if (fromUSB.command == "i")      //IMU data sending
     {
-     // readIMU();
+      // readIMU();
       /*sendUSB(data.imu, 3, data.rowsIMU);
-      memset(data.imu, 0, sizeof(data.imu)); //clear data
-      data.rowsIMU = 0;*/
+        memset(data.imu, 0, sizeof(data.imu)); //clear data
+        data.rowsIMU = 0;*/
       SerialUSB.println(ToDeg(roll));
       SerialUSB.println(ToDeg(pitch));
       SerialUSB.println(ToDeg(yaw));
@@ -616,9 +677,10 @@ void loop() {
       SerialUSB.print("Left: ");
       SerialUSB.println(readSonicLeft());
       /*sendUSB(data.sonar, 3, data.rowsSonar);
-      memset(data.sonar, 0, sizeof(data.sonar)); //clear data
-      data.rowsSonar = 0;*/
+        memset(data.sonar, 0, sizeof(data.sonar)); //clear data
+        data.rowsSonar = 0;*/
     }
+    SerialUSB.println(confirmationArgument);
     sendConfirmation(fromUSB.command, confirmationArgument);
     clearDataFromUSB();
   }

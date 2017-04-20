@@ -5,8 +5,13 @@ b - ty³
 l - lewo
 r - prawo
 ---------------kamera---------------------
-p - obrót
-w - potwierdzenie od Raspberry
+p - obrót w prawo
+q - obrót w lewo
+w - potwierdzenie od Raspberry,¿e zdjêcie zosta³o zrobione
+---------------czujniki - proœba o dane---
+s - sonary
+e - enkodery
+i - imu
 ---------------inne-----------------------
-$ - koniec komunikatu
-d - proœba o dane
+E - koniec komunikatu
+
