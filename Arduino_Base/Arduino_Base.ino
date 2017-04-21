@@ -413,7 +413,8 @@ void moveStraight(int moveDirection, double distance)
         goFR = 0.8; goFL = 1; goBR = 0.8; goBL = 1;
       }
     }
-    else {
+    else //same power for all motors
+    {
       goFR = 1, goFL = 1, goBR = 1, goBL = 1;
     }
 
