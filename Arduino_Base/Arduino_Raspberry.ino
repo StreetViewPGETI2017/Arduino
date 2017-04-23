@@ -1,9 +1,9 @@
 void recieveUSB() //USB data receive event function
 {
   char readChar;
+  String numberStr = "";
   int i = 0;
-  bool minus = false;//if argument is negative
-  int power = 0, argument = 0;
+
   while (i < RX_SIZE) //waits to end of message or end of space
   {
     readChar = ' ';
@@ -12,19 +12,13 @@ void recieveUSB() //USB data receive event function
     else if (readChar != ' ')
     {
       int ascii = (int)readChar;
-      if (ascii == 45)minus = true; //if char is '-'
-      else if (ascii >= 48 && ascii <= 57) //if char is 0-9
-      {
-        ascii -= 48;//set as normal number
-        argument += ascii * pow(10, power); //calculate positions of base 10 number
-        power += 1;
-      }
+      if ((ascii >= 48 && ascii <= 57) || ascii == 45 ) //if char is 0-9 or minus
+        numberStr += readChar;//connect number parts made from single chars
       else fromUSB.command = readChar;
-      i++;
     }
+    i++;
   }
-  if (minus)argument *= -1; //negative number
-    fromUSB.argument = argument;
+  fromUSB.argument = numberStr.toInt();
   fromUSB.received = true;
 }
 void sendUSB(int data[][3], int cells, int rows)
