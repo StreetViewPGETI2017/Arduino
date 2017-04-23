@@ -33,7 +33,7 @@
 
 
 
-#define IMU_V5
+//#define IMU_V5
 
 // Uncomment the below line to use this axis definition:
 // X axis pointing forward
@@ -333,13 +333,13 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
   return 0;
 }
 
-void tickL()
+void tickL() //left encoder
 {
   lCount++;
   distanceDrivenL =  2 * 3.14159 * WHEEL_RADIUS * lCount * 1 / ENCODER_POLES;
 }
 
-void tickR()
+void tickR() // right encoder
 {
   rCount++;
   distanceDrivenR =  2 * 3.14159 * WHEEL_RADIUS * rCount * 1 / ENCODER_POLES;
@@ -461,9 +461,103 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
   motorFR->setSpeed(turnSpeed);
   motorFL->setSpeed(turnSpeed);
   motorBR->setSpeed(turnSpeed);
-  motorBL->setSpeed(turnSpeed);
+  motorBL->setSpeed(turnSpeed); 
 
-  delay(turnTimems);
+ for ( int i = 0; i < 20; ++i)
+      {
+        readIMU();
+        printdata();
+      }
+
+  float wejscier = ToDeg(roll);
+  float wejsciep = ToDeg(pitch);
+  float wejsciey = ToDeg(yaw);
+  
+  for (int i = 0; i < 10; ++i)
+  {
+    for ( int i = 0; i < 20; ++i)
+      {
+        readIMU();
+      }
+      SerialUSB.println(ToDeg(roll));
+      SerialUSB.println(ToDeg(pitch));
+      SerialUSB.println(ToDeg(yaw));
+      SerialUSB.println(" ");
+  }
+  delay(turnTimems/10);
+
+  float wyjscier = ToDeg(roll);
+  float wyjsciep = ToDeg(pitch);
+  float wyjsciey = ToDeg(yaw);
+
+   SerialUSB.println(wyjscier - wejscier);
+   SerialUSB.println(wyjsciep - wejsciep);
+   SerialUSB.println(wyjsciey - wejsciey);
+
+  motorFR->run(RELEASE);
+  motorFL->run(RELEASE);
+  motorBR->run(RELEASE);
+  motorBL->run(RELEASE);
+
+}
+
+void turn(int turnDirection, float angle) //turning is tankwise
+{
+       
+  if (detectObstacle(turnDirection, 20))
+    return;
+  if (turnDirection == TURN_LEFT)
+  {
+    
+    motorFR->run(FORWARD);
+    motorFL->run(BACKWARD);
+    motorBR->run(BACKWARD);
+    motorBL->run(FORWARD);
+
+  }
+  else if (turnDirection == TURN_RIGHT)
+  {
+
+    motorFR->run(BACKWARD);
+    motorFL->run(FORWARD);
+    motorBR->run(FORWARD);
+    motorBL->run(BACKWARD);
+
+  }
+
+  for ( int i = 0; i < 20; ++i)
+  {
+      readIMU();
+      printdata();
+  }
+
+  float wejscier = ToDeg(roll);
+  float wejsciep = ToDeg(pitch);
+  float wejsciey = ToDeg(yaw);
+
+  motorFR->setSpeed(128);
+  motorFL->setSpeed(128);
+  motorBR->setSpeed(128);
+  motorBL->setSpeed(128); 
+  
+  while( abs(wejsciey - ToDeg(yaw)) < abs(angle))
+  {
+    for ( int i = 0; i < 20; ++i)
+    {
+        readIMU();
+    }
+  }
+  motorFR->setSpeed(0);
+  motorFL->setSpeed(0);
+  motorBR->setSpeed(0);
+  motorBL->setSpeed(0);   
+
+  float wyjscier = ToDeg(roll);
+  float wyjsciep = ToDeg(pitch);
+  float wyjsciey = ToDeg(yaw);
+
+   SerialUSB.print("degrees: ");
+   SerialUSB.println(abs(wyjsciey-wejsciey));
 
   motorFR->run(RELEASE);
   motorFL->run(RELEASE);
@@ -510,8 +604,8 @@ void rotateCamera(int cameraDirection) //rotates camera
   cameraServo.write(95);
   for (int j = 0; j < 20; ++j)
   {
-    //readIMU();
-    //printdata();
+    readIMU();
+    printdata();
   }
   delay(500);
 }
@@ -540,21 +634,24 @@ void setup() {
   //Serial.begin(115200);
   pinMode (STATUS_LED, OUTPUT); // Status LED
 
-  //I2C_Init();
+  SerialUSB.println("test1");
+  I2C_Init();
+  SerialUSB.println("test2");
 
   digitalWrite(STATUS_LED, LOW);
   delay(1500);
 
-  //Accel_Init();
-  //Compass_Init();
-  //Gyro_Init();
-
+  Accel_Init();
+  Compass_Init();
+  Gyro_Init();
+  SerialUSB.println("test3");
   delay(20);
 
-  /*for(int i=0;i<32;i++)    // We take some readings...
+  for(int i=0;i<32;i++)    // We take some readings...
     {
     Read_Gyro();
     Read_Accel();
+    SerialUSB.println("test4");
     for(int y=0; y<6; y++)   // Cumulate values
       AN_OFFSET[y] += AN[y];
     delay(20);
@@ -567,7 +664,7 @@ void setup() {
 
     //Serial.println("Offset:");
     for(int y=0; y<6; y++)
-    SerialUSB.println(AN_OFFSET[y]);*/
+    SerialUSB.println(AN_OFFSET[y]);
 
   delay(2000);
   digitalWrite(STATUS_LED, HIGH);
@@ -597,31 +694,40 @@ void loop() {
     }
     else if (fromUSB.command == "l")       //left
     {
-      turn(TURN_LEFT, 1000, 128);
+      //turn(TURN_LEFT, 1000, 128);
+      turn(TURN_LEFT, fromUSB.argument);
       confirmationArgument = fromUSB.argument;; //test value
     }
     else if (fromUSB.command  == "r")      //right
     {
-      turn(TURN_RIGHT, 1000, 128);
+      //turn(TURN_RIGHT, 1000, 128);
+      turn(TURN_RIGHT, fromUSB.argument);
       confirmationArgument = fromUSB.argument;; //test value
     }
     else if (fromUSB.command  == "p")     //camera rotation right
     {
-      rotateCamera(1);
+      //rotateCamera(1);
+      turn(TURN_RIGHT, 30.0);
     }
     else if (fromUSB.command  == "q")     //camera rotation left
     {
-      rotateCamera(-1);
+      //rotateCamera(-1);
+      turn(TURN_RIGHT, 30.0);
     }
     else if (fromUSB.command == "i")      //IMU data sending
     {
-      // readIMU();
+      for ( int i = 0; i < 20; ++i)
+      {
+        readIMU();
+        printdata();
+      }
       /*sendUSB(data.imu, 3, data.rowsIMU);
         memset(data.imu, 0, sizeof(data.imu)); //clear data
         data.rowsIMU = 0;*/
       SerialUSB.println(ToDeg(roll));
       SerialUSB.println(ToDeg(pitch));
       SerialUSB.println(ToDeg(yaw));
+      SerialUSB.println(" ");
     }
     else if (fromUSB.command == "e")    //encoders data sending
     {

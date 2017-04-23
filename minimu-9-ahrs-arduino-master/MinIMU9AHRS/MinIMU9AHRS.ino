@@ -29,7 +29,7 @@ with MinIMU-9-Arduino-AHRS. If not, see <http://www.gnu.org/licenses/>.
 */
 
 // Uncomment the following line to use a MinIMU-9 v5 or AltIMU-10 v5. Leave commented for older IMUs (up through v4).
-#define IMU_V5
+//#define IMU_V5
 
 // Uncomment the below line to use this axis definition:
    // X axis pointing forward
