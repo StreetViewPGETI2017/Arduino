@@ -7,7 +7,11 @@ void recieveUSB() //USB data receive event function
   while (i < RX_SIZE) //waits to end of message or end of space
   {
     readChar = ' ';
-    if (SerialUSB.available()) readChar = SerialUSB.read();
+    if (SerialUSB.available())
+    {
+      readChar = SerialUSB.read();
+      i++;
+    }
     if (readChar == END_OF_MESSAGE)break;
     else if (readChar != ' ')
     {
@@ -16,7 +20,6 @@ void recieveUSB() //USB data receive event function
         numberStr += readChar;//connect number parts made from single chars
       else fromUSB.command = readChar;
     }
-    i++;
   }
   fromUSB.argument = numberStr.toInt();
   fromUSB.received = true;

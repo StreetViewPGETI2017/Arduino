@@ -329,7 +329,10 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
     else if (moveDirection == TURN_RIGHT && readSonicRight() < distance)
       ++counter;
   if (counter > 5 )
+  {
+    SerialUSB.println("obstacle");
     return 1;
+  }
   return 0;
 }
 
@@ -423,6 +426,16 @@ void moveStraight(int moveDirection, double distance)
     motorBR->setSpeed(goBR * velocity);
     motorBL->setSpeed(goBL * velocity);
     stepsMade++;
+
+    SerialUSB.print("Forward: ");
+    SerialUSB.println(readSonicForward());
+    SerialUSB.print("Right: ");
+    SerialUSB.println(readSonicRight());
+    SerialUSB.print("Left: ");
+    SerialUSB.println(readSonicLeft());
+    SerialUSB.print("Distance: ");
+    SerialUSB.println(distanceDrivenL);
+    
   }
   motorFR->setSpeed(0); //motor speed
   motorFL->setSpeed(0);
@@ -501,11 +514,12 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
 
 }
 
-void turn(int turnDirection, float angle) //turning is tankwise
+float turn(int turnDirection, float angle) //turning is tankwise
 {
-       
+  float correction = 1.7;
+  angle /= correction;     
   if (detectObstacle(turnDirection, 20))
-    return;
+    return -1;
   if (turnDirection == TURN_LEFT)
   {
     
@@ -528,7 +542,7 @@ void turn(int turnDirection, float angle) //turning is tankwise
   for ( int i = 0; i < 20; ++i)
   {
       readIMU();
-      printdata();
+      //printdata();
   }
 
   float wejscier = ToDeg(roll);
@@ -539,12 +553,14 @@ void turn(int turnDirection, float angle) //turning is tankwise
   motorFL->setSpeed(128);
   motorBR->setSpeed(128);
   motorBL->setSpeed(128); 
+
   
   while( abs(wejsciey - ToDeg(yaw)) < abs(angle))
   {
     for ( int i = 0; i < 20; ++i)
     {
         readIMU();
+        //printdata();
     }
   }
   motorFR->setSpeed(0);
@@ -557,13 +573,13 @@ void turn(int turnDirection, float angle) //turning is tankwise
   float wyjsciey = ToDeg(yaw);
 
    SerialUSB.print("degrees: ");
-   SerialUSB.println(abs(wyjsciey-wejsciey));
+   SerialUSB.println(correction*abs(wyjsciey-wejsciey));
 
   motorFR->run(RELEASE);
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
-
+  return (abs(wyjsciey-wejsciey));
 }
 
 void rotateCamera(int cameraDirection) //rotates camera
@@ -676,6 +692,10 @@ void setup() {
 }
 
 void loop() {
+  for ( int i = 0; i < 20; ++i)
+      {
+        readIMU();
+      }
   //readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (fromUSB.received) {
@@ -695,24 +715,24 @@ void loop() {
     else if (fromUSB.command == "l")       //left
     {
       //turn(TURN_LEFT, 1000, 128);
-      turn(TURN_LEFT, fromUSB.argument);
-      confirmationArgument = fromUSB.argument;; //test value
+      confirmationArgument = turn(TURN_LEFT, fromUSB.argument);
+      //confirmationArgument = fromUSB.argument;; //test value
     }
     else if (fromUSB.command  == "r")      //right
     {
       //turn(TURN_RIGHT, 1000, 128);
-      turn(TURN_RIGHT, fromUSB.argument);
-      confirmationArgument = fromUSB.argument;; //test value
+      confirmationArgument = turn(TURN_RIGHT, fromUSB.argument);
+      //confirmationArgument = fromUSB.argument;; //test value
     }
     else if (fromUSB.command  == "p")     //camera rotation right
     {
       //rotateCamera(1);
-      turn(TURN_RIGHT, 30.0);
+      turn(TURN_RIGHT, 20.0);
     }
     else if (fromUSB.command  == "q")     //camera rotation left
     {
       //rotateCamera(-1);
-      turn(TURN_RIGHT, 30.0);
+      turn(TURN_LEFT, 20.0);
     }
     else if (fromUSB.command == "i")      //IMU data sending
     {
