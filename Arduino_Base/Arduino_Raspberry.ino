@@ -24,16 +24,6 @@ void recieveUSB() //USB data receive event function
   fromUSB.argument = numberStr.toInt();
   fromUSB.received = true;
 }
-void sendUSB(int data[][3], int cells, int rows)
-{
-  //code for sending to Raspberry
-  for (int i = 0; i < TX_SIZE && i < rows; i++) //send all rows
-  {
-    for (int j = 0; j < cells; j++) //send all cells in row
-      SerialUSB.println(data[i][j]);
-  }
-  SerialUSB.println(END_OF_MESSAGE);
-}
 bool waitForRaspberry(int waitTime)
 {
   int wait = 0;
@@ -58,11 +48,10 @@ void clearDataFromUSB()
   fromUSB.argument = 0;
   fromUSB.received = false;
 }
-void sendConfirmation(String command, int argument)//confirms execution of command
+void sendConfirmation(String command, String argument)//confirms execution of command
 {
-  SerialUSB.println(command);
-  SerialUSB.println(argument);
-  SerialUSB.println(END_OF_MESSAGE);
+  String allToSend = command + argument + END_OF_MESSAGE;
+  SerialUSB.println(allToSend);
 }
 
 

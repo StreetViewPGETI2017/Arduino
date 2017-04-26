@@ -1,4 +1,28 @@
-odbiór przez USB
+Arduino - Raspberry komunikacja przez USB
+-----------------------------------------------------
+komendy nale¿y wysy³aæ w postaci:
+
+komenda
+argument(dostepne: cyfry 0-9 i znak minus)
+znak koñca linii
+-----------------------------------------------------
+ka¿da komenda jest potwierdzana w postaci:
+
+komenda
+argument wykonania 
+znak koñca linii
+-----------------------------------------------------
+
+
+w czasie wykonywania ruchu robot wysy³a po USB ci¹gle dane, ich format przedstawia siê nastêpuj¹co:
+-----------------------------podczas jazdy przód/ty³--------------------------
+s(sonar_przód,sonar_prawa,sonar_lewa)t(dystans_przejechany)znak_konca_komunikatu
+
+-----------------------------podczas obrotu-----------------------------------
+s(sonar_przód,sonar_prawa,sonar_lewa)t(obrót_wykonany)znak_konca_komunikatu
+
+
+........................................................KOMENDY/ZNACZENIE ZNAKÓW................................................
 ---------------jazda robotem--------------
 f - przód
 b - ty³
@@ -10,8 +34,18 @@ q - obrót w lewo
 w - potwierdzenie od Raspberry,¿e zdjêcie zosta³o zrobione
 ---------------czujniki - proœba o dane---
 s - sonary
+wygl¹d odpowiedzi:
+s(sonar_przód,sonar_prawa,sonar_lewa)E
+
 e - enkodery
+wygl¹d odpowiedzi:
+e(enkoder_prawa,enkoder_lewa)E
+
 i - imu
+wygl¹d odpowiedzi:
+i(yaw)E
 ---------------inne-----------------------
 E - koniec komunikatu
+...............................................................................................................................
+
 
