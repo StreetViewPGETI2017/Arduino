@@ -50,8 +50,9 @@ void clearDataFromUSB()
 }
 void sendConfirmation(String command, String argument)//confirms execution of command
 {
-  String allToSend = command + argument + END_OF_MESSAGE;
-  SerialUSB.println(allToSend);
+  SerialUSB.println(command);
+  SerialUSB.println(argument);
+  SerialUSB.println(END_OF_MESSAGE);
 }
 
 
