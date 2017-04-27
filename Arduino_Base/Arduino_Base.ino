@@ -461,7 +461,7 @@ void turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwis
   for ( int i = 0; i < 20; ++i)
   {
     readIMU();
-    printdata();
+    //printdata();
   }
 
   float wejscier = ToDeg(roll);
@@ -567,7 +567,7 @@ float turn(int turnDirection, float angle) //turning is tankwise
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
-  return (abs(wyjsciey - wejsciey));
+  return (correction*abs(wyjsciey - wejsciey));
 }
 
 void rotateCamera(int cameraDirection) //rotates camera
@@ -638,9 +638,9 @@ void setup() {
   //Serial.begin(115200);
   pinMode (STATUS_LED, OUTPUT); // Status LED
 
-  SerialUSB.println("test1");
+  //SerialUSB.println("test1");
   I2C_Init();
-  SerialUSB.println("test2");
+  //SerialUSB.println("test2");
 
   digitalWrite(STATUS_LED, LOW);
   delay(1500);
@@ -648,14 +648,14 @@ void setup() {
   Accel_Init();
   Compass_Init();
   Gyro_Init();
-  SerialUSB.println("test3");
+  //SerialUSB.println("test3");
   delay(20);
 
   for (int i = 0; i < 32; i++) // We take some readings...
   {
     Read_Gyro();
     Read_Accel();
-    SerialUSB.println("test4");
+    //SerialUSB.println("test4");
     for (int y = 0; y < 6; y++) // Cumulate values
       AN_OFFSET[y] += AN[y];
     delay(20);
