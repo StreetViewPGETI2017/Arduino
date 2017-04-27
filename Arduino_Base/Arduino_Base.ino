@@ -99,7 +99,7 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 #define Kp 10
 #define Ki 5
 #define Kd 0.003
-#define maxPIDsteps 5000 // after cross over of this value robot stops,
+#define maxPIDsteps 5000 // after cross over of this value robot stops
 #define MAX_VELOCITY 200 // total max is 255
 
 float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
@@ -314,7 +314,7 @@ int detectObstacle(int moveDirection, int distance) //obstacle detection
       ++counter;
   if (counter > 5 )
   {
-    SerialUSB.println("obstacle");
+   // SerialUSB.println("obstacle");
     return 1;
   }
   return 0;
@@ -330,7 +330,6 @@ void tickR() // right encoder
 {
   rCount++;
   distanceDrivenR =  2 * 3.14159 * WHEEL_RADIUS * rCount * 1 / ENCODER_POLES;
-
 }
 
 /*void getEncoderPosition(){
@@ -383,10 +382,10 @@ void moveStraight(int moveDirection, double distance)
     motorBR->run(FORWARD);
     motorBL->run(FORWARD);
   }
-
+  velocity = 200;
   while (abs(distance - distanceDrivenL) >= fixedErrorPID && stepsMade < maxPIDsteps)
   {
-    myPID.Compute();
+   // myPID.Compute();
     if (velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
     if (detectObstacle(moveDirection, 30)) break; //evading of obstacles
     if (abs(lCount - rCount) > 1) //prevents of different positions left and right wheel, max error is one position
@@ -411,6 +410,8 @@ void moveStraight(int moveDirection, double distance)
     motorBL->setSpeed(goBL * velocity);
     stepsMade++;
 
+    if(velocity != 0)
+    {
     //data is send in every loop
     //s(sonar_forward,sonar_right,sonar_left)t(distance_traveled)E
     String stringToSend = "s(" + String(readSonicForward()) +
@@ -418,6 +419,7 @@ void moveStraight(int moveDirection, double distance)
                           "," + String(readSonicLeft()) + ")" +
                           "t(" + String(distanceDrivenL) + ")" + END_OF_MESSAGE;
     SerialUSB.println(stringToSend);
+    }
   }
   motorFR->setSpeed(0); //motor speed
   motorFL->setSpeed(0);
@@ -560,8 +562,8 @@ float turn(int turnDirection, float angle) //turning is tankwise
   float wyjsciep = ToDeg(pitch);
   float wyjsciey = ToDeg(yaw);
 
-  SerialUSB.print("degrees: ");
-  SerialUSB.println(correction * abs(wyjsciey - wejsciey));
+ //SerialUSB.print("degrees: ");
+ // SerialUSB.println(correction * abs(wyjsciey - wejsciey));
 
   motorFR->run(RELEASE);
   motorFL->run(RELEASE);
