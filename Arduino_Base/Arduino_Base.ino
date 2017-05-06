@@ -8,7 +8,6 @@
 #include <Servo.h>
 //#include <RedBot.h>
 //#include <Encoder.h>
-#include <PID_v1.h>
 
 
 #define GO_FORWARD 1
@@ -92,16 +91,11 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 
 #define STATUS_LED 13
 
-//CONTROL DEFINITIONS:
-#define WHEEL_RADIUS 5.5 //radius in cm
+//CONTROL/MOVE DEFINITIONS:
 #define ENCODER_POLES 8
-#define fixedErrorPID 4.5 //error between given value and recived on which computing stops
-#define Kp 10
-#define Ki 5
-#define Kd 0.003
-#define maxPIDsteps 5000 // after cross over of this value robot stops
 #define MAX_VELOCITY 200 // total max is 255
-#define distanceForTick 4.32 //wheel radius * 2pi * 1/encoder poles
+#define distanceForTick 4.69 //wheel round / encoder poles
+#define SEND_INFO_LOOP true
 
 float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
@@ -191,8 +185,8 @@ int encoderPinR = 11;
 
 volatile int lCount = 0;
 volatile int rCount = 0;
-double distanceDrivenL = 0;
-double distanceDrivenR = 0;
+volatile double distanceDrivenL = 0;
+volatile double distanceDrivenR = 0;
 
 int previousStateEncL = LOW;
 int previousStateEncR = LOW;
@@ -258,79 +252,16 @@ long* readSonicData() {
   return distance;
 }
 
-long readSonicForward() {
-  long time, distance;
-
-  digitalWrite(trigPinForward, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPinForward, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinForward, LOW);
-
-  time = pulseIn(echoPinForward, HIGH);
-  distance = time / 58;  // to get cm
-
-  return distance;
-}
-
-long readSonicRight() {
-  long time, distance;
-
-  digitalWrite(trigPinRight, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPinRight, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinRight, LOW);
-
-  time = pulseIn(echoPinRight, HIGH);
-  distance = time / 58;  // to get cm
-
-  return distance;
-}
-
-long readSonicLeft() {
-  long time, distance;
-
-  digitalWrite(trigPinLeft, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPinLeft, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinLeft, LOW);
-
-  time = pulseIn(echoPinLeft, HIGH);
-  distance = time / 58;  // to get cm
-
-  return distance;
-}
-
-int detectObstacle(int moveDirection, int distance) //obstacle detection
-{
-  int counter = 0;
-  for (int j = 0; j < 10; ++j)
-    if (moveDirection == GO_FORWARD && readSonicForward() < distance)
-      ++counter;
-    else if (moveDirection == TURN_LEFT && readSonicLeft() < distance)
-      ++counter;
-    else if (moveDirection == TURN_RIGHT && readSonicRight() < distance)
-      ++counter;
-  if (counter > 5 )
-  {
-   // SerialUSB.println("obstacle");
-    return 1;
-  }
-  return 0;
-}
-
 void tickL() //left encoder
 {
   lCount++;
-  distanceDrivenL = rCount*distanceForTick;
+  distanceDrivenL = lCount * distanceForTick;
 }
 
 void tickR() // right encoder
 {
   rCount++;
-  distanceDrivenR =  rCount*distanceForTick;
+//  distanceDrivenR =  rCount * distanceForTick;
 }
 
 /*void getEncoderPosition(){
@@ -365,9 +296,8 @@ void moveStraight(int moveDirection, double distance)
   distanceDrivenL = 0;
   distanceDrivenR = 0;
   double velocity = 0;
-  int stepsMade = 0;
- // PID myPID(&distanceDrivenL, &velocity, &distance, Kp, Ki, Kd, DIRECT);
-  //myPID.SetMode(AUTOMATIC);
+  bool defaultSpeed = true;
+  bool changeSpeed = true;
 
   float goFR = 1, goFL = 1, goBR = 1, goBL = 1; //used to correct path if encoders have different values
 
@@ -385,43 +315,50 @@ void moveStraight(int moveDirection, double distance)
     motorBR->run(FORWARD);
     motorBL->run(FORWARD);
   }
-  velocity = 200;
-  while (distance - distanceDrivenL >= fixedErrorPID && stepsMade < maxPIDsteps)
+  velocity = MAX_VELOCITY;
+  while (distance - distanceDrivenL >= distanceForTick)
   {
-   // myPID.Compute();
-    if (velocity > MAX_VELOCITY) velocity = MAX_VELOCITY; //velocity limitation
     if (detectObstacle(moveDirection, 30)) break; //evading of obstacles
+    if (changeSpeed) //prevents from setting speed in every loop
+    {
+      motorFR->setSpeed(goFR * velocity); //motor speed
+      motorFL->setSpeed(goFL * velocity);
+      motorBR->setSpeed(goBR * velocity);
+      motorBL->setSpeed(goBL * velocity);
+      changeSpeed = false;
+    }
+
     if (abs(lCount - rCount) > 1) //prevents of different positions left and right wheel, max error is one position
     {
-      if (lCount > rCount) //go more to left side
+
+      changeSpeed = true;
+      defaultSpeed = false;
+
+      if (lCount > rCount) //go more to right side
       {
         goFR = 1; goFL = 0.8; goBR = 1; goBL = 0.8;
       }
-      else if (lCount < rCount) //go more to right side
+      else if (lCount < rCount) //go more to left side
       {
         goFR = 0.8; goFL = 1; goBR = 0.8; goBL = 1;
       }
     }
-    else //same power for all motors
+    else if (!defaultSpeed) //same power for all motors if isn't set
     {
+      defaultSpeed = true;
+      changeSpeed = true;
       goFR = 1, goFL = 1, goBR = 1, goBL = 1;
     }
 
-    motorFR->setSpeed(goFR * velocity); //motor speed
-    motorFL->setSpeed(goFL * velocity);
-    motorBR->setSpeed(goBR * velocity);
-    motorBL->setSpeed(goBL * velocity);
-    stepsMade++;
-
-    if(velocity != 0)
+    if (SEND_INFO_LOOP && velocity != 0)
     {
-    //data is send in every loop
-    //s(sonar_forward,sonar_right,sonar_left)t(distance_traveled)E
-    String stringToSend = "s(" + String(readSonicForward()) +
-                          "," + String(readSonicRight()) +
-                          "," + String(readSonicLeft()) + ")" +
-                          "t(" + String(distanceDrivenL) + ")" + END_OF_MESSAGE;
-    SerialUSB.println(stringToSend);
+      //data is send in every loop
+      //s(sonar_forward,sonar_right,sonar_left)t(distance_traveled)E
+      String stringToSend = "s(" + String(readSonicForward()) +
+                            "," + String(readSonicRight()) +
+                            "," + String(readSonicLeft()) + ")" +
+                            "t(" + String(distanceDrivenL) + ")" + END_OF_MESSAGE;
+      SerialUSB.println(stringToSend); 
     }
   }
   motorFR->setSpeed(0); //motor speed
@@ -438,7 +375,7 @@ void moveStraight(int moveDirection, double distance)
 float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwise
 {
   /*rCount = 0;
-  lCount = 0;*/
+    lCount = 0;*/
   if (detectObstacle(turnDirection, 20))
     return 0.0;
   if (turnDirection == TURN_LEFT)
@@ -452,7 +389,7 @@ float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwi
   }
   else if (turnDirection == TURN_RIGHT)
   {
-  turnTimems *= 1.25;
+    turnTimems *= 1.25;
     motorFR->run(BACKWARD);
     motorFL->run(FORWARD);
     motorBR->run(FORWARD);
@@ -466,35 +403,35 @@ float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwi
   motorBL->setSpeed(turnSpeed);
 
   /*for ( int i = 0; i < 20; ++i)
-  {
+    {
     readIMU();
     //printdata();
-  }
+    }
 
-  float wejscier = ToDeg(roll);
-  float wejsciep = ToDeg(pitch);
-  float wejsciey = ToDeg(yaw);*/
+    float wejscier = ToDeg(roll);
+    float wejsciep = ToDeg(pitch);
+    float wejsciey = ToDeg(yaw);*/
 
   for (int i = 0; i < 10; ++i)
   {
     /*for ( int i = 0; i < 20; ++i)
-    {
+      {
       readIMU();
-    }
-    SerialUSB.println(ToDeg(roll));
-    SerialUSB.println(ToDeg(pitch));
-    SerialUSB.println(ToDeg(yaw));
-    SerialUSB.println(" ");*/
+      }
+      SerialUSB.println(ToDeg(roll));
+      SerialUSB.println(ToDeg(pitch));
+      SerialUSB.println(ToDeg(yaw));
+      SerialUSB.println(" ");*/
     delay(turnTimems / 10);
   }
 
   /*float wyjscier = ToDeg(roll);
-  float wyjsciep = ToDeg(pitch);
-  float wyjsciey = ToDeg(yaw);
+    float wyjsciep = ToDeg(pitch);
+    float wyjsciey = ToDeg(yaw);
 
-  SerialUSB.println(wyjscier - wejscier);
-  SerialUSB.println(wyjsciep - wejsciep);
-  SerialUSB.println(wyjsciey - wejsciey);*/
+    SerialUSB.println(wyjscier - wejscier);
+    SerialUSB.println(wyjsciep - wejsciep);
+    SerialUSB.println(wyjsciey - wejsciey);*/
 
   motorFR->run(RELEASE);
   motorFL->run(RELEASE);
@@ -545,10 +482,10 @@ float turn(int turnDirection, float angle) //turning is tankwise
   motorFL->setSpeed(speed);
   motorBR->setSpeed(speed);
   motorBL->setSpeed(speed);
-  
+
   while ( abs(wyjsciey - wejsciey) < abs(copyAngle))
   {
-    
+
     for ( int i = 0; i < 10; ++i)
     {
       readIMU();
@@ -556,12 +493,12 @@ float turn(int turnDirection, float angle) //turning is tankwise
     wyjsciey = ToDeg(yaw);
     printdata();
 
-    
+
     //s(sonar_forward,sonar_right,sonar_left)t(turn_in_degrees)E
     String stringToSend = "s(" + String(readSonicForward()) +
                           "," + String(readSonicRight()) +
                           "," + String(readSonicLeft()) + ")" +
-                          "t(" + String(correction*abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
+                          "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
     SerialUSB.println(stringToSend);
 
   }
@@ -572,16 +509,16 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
   float wyjscier = ToDeg(roll);
   float wyjsciep = ToDeg(pitch);
- // float wyjsciey = ToDeg(yaw);
+  // float wyjsciey = ToDeg(yaw);
 
- //SerialUSB.print("degrees: ");
- // SerialUSB.println(correction * abs(wyjsciey - wejsciey));
+  //SerialUSB.print("degrees: ");
+  // SerialUSB.println(correction * abs(wyjsciey - wejsciey));
 
   motorFR->run(RELEASE);
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
-  return (correction*abs(wyjsciey - wejsciey));
+  return (correction * abs(wyjsciey - wejsciey));
 }
 
 void rotateCamera(int cameraDirection) //rotates camera
@@ -720,14 +657,14 @@ void loop() {
     else if (fromUSB.command == "l")       //left
     {
       //argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
-      String(turn(TURN_LEFT, 500,128));
+      String(turn(TURN_LEFT, 500, 128));
       argument = String(30.0);
       integerArg = 30;
     }
     else if (fromUSB.command  == "r")      //right
     {
       //argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
-      String(turn(TURN_RIGHT, 500,128));
+      String(turn(TURN_RIGHT, 500, 128));
       argument = String(30.0);
       integerArg = 30;
     }
@@ -735,14 +672,14 @@ void loop() {
     {
       //rotateCamera(1);
       //turn(TURN_RIGHT, 20.0);
-      String(turn(TURN_RIGHT, 500,128));
+      String(turn(TURN_RIGHT, 500, 128));
       argument = String(30.0);
     }
     else if (fromUSB.command  == "q")     //camera rotation left
     {
       //rotateCamera(-1);
       //turn(TURN_LEFT, 20.0);
-      String(turn(TURN_LEFT, 500,128));
+      String(turn(TURN_LEFT, 500, 128));
       argument = String(30.0);
     }
     else if (fromUSB.command == "i")      //IMU data sending
@@ -770,8 +707,8 @@ void loop() {
                  "," + String(readSonicRight()) +
                  "," + String(readSonicLeft()) + ")";
     }
-    
-    sendConfirmation(fromUSB.command, String(integerArg));
+
+    sendConfirmation(fromUSB.command, String(argument));
     clearDataFromUSB();
   }
 }
