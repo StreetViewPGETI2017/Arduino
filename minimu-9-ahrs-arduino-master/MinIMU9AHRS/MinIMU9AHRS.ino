@@ -156,12 +156,12 @@ float Temporary_Matrix[3][3]={
 
 void setup()
 {
-  Serial.begin(115200);
+  SerialUSB.begin(115200);
   pinMode (STATUS_LED,OUTPUT);  // Status LED
 
   I2C_Init();
 
-  Serial.println("Pololu MinIMU-9 + Arduino AHRS");
+  SerialUSB.println("Pololu MinIMU-9 + Arduino AHRS");
 
   digitalWrite(STATUS_LED,LOW);
   delay(1500);
@@ -186,9 +186,9 @@ void setup()
 
   AN_OFFSET[5]-=GRAVITY*SENSOR_SIGN[5];
 
-  //Serial.println("Offset:");
+  //SerialUSB.println("Offset:");
   for(int y=0; y<6; y++)
-    Serial.println(AN_OFFSET[y]);
+    SerialUSB.println(AN_OFFSET[y]);
 
   delay(2000);
   digitalWrite(STATUS_LED,HIGH);

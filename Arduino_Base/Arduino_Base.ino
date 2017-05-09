@@ -443,7 +443,8 @@ float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwi
 
 float turn(int turnDirection, float angle) //turning is tankwise
 {
-  float correction = 1.7;
+  //float correction = 1.7;
+  float correction = 1.0;
   float copyAngle = angle / correction;
   if (detectObstacle(turnDirection, 20))
     return -1;
@@ -477,7 +478,7 @@ float turn(int turnDirection, float angle) //turning is tankwise
   float wejsciey = ToDeg(yaw);
   float wyjsciey = ToDeg(yaw);
 
-  int speed  = 128;
+  int speed  = 255;
   motorFR->setSpeed(speed);
   motorFL->setSpeed(speed);
   motorBR->setSpeed(speed);
@@ -485,11 +486,12 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
   while ( abs(wyjsciey - wejsciey) < abs(copyAngle))
   {
+    
 
-    for ( int i = 0; i < 10; ++i)
-    {
+    //for ( int i = 0; i < 10; ++i)
+    //{
       readIMU();
-    }
+    //}
     wyjsciey = ToDeg(yaw);
     printdata();
 
@@ -501,6 +503,10 @@ float turn(int turnDirection, float angle) //turning is tankwise
                           "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
     SerialUSB.println(stringToSend);
 
+    if ((wyjsciey - wejsciey) > 180)
+      wyjsciey -= 360;
+    else if ((wyjsciey - wejsciey) < -180)
+      wyjsciey += 360;
   }
   motorFR->setSpeed(0);
   motorFL->setSpeed(0);
@@ -656,16 +662,16 @@ void loop() {
     }
     else if (fromUSB.command == "l")       //left
     {
-      //argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
-      String(turn(TURN_LEFT, 500, 128));
-      argument = String(30.0);
+      argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
+      //String(turn(TURN_LEFT, 500, 128));
+      //argument = String(30.0);
       integerArg = 30;
     }
     else if (fromUSB.command  == "r")      //right
     {
-      //argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
-      String(turn(TURN_RIGHT, 500, 128));
-      argument = String(30.0);
+      argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
+      //String(turn(TURN_RIGHT, 500, 128));
+      //argument = String(30.0);
       integerArg = 30;
     }
     else if (fromUSB.command  == "p")     //camera rotation right

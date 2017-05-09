@@ -30,57 +30,57 @@ with MinIMU-9-Arduino-AHRS. If not, see <http://www.gnu.org/licenses/>.
 
 void printdata(void)
 {   
-      Serial.print("!");
+      SerialUSB.print("!");
 
       #if PRINT_EULER == 1
-      Serial.print("ANG:");
-      Serial.print(ToDeg(roll));
-      Serial.print(",");
-      Serial.print(ToDeg(pitch));
-      Serial.print(",");
-      Serial.print(ToDeg(yaw));
+      SerialUSB.print("ANG:");
+      SerialUSB.print(ToDeg(roll));
+      SerialUSB.print(",");
+      SerialUSB.print(ToDeg(pitch));
+      SerialUSB.print(",");
+      SerialUSB.print(ToDeg(yaw));
       #endif      
       #if PRINT_ANALOGS==1
-      Serial.print(",AN:");
-      Serial.print(AN[0]);  //(int)read_adc(0)
-      Serial.print(",");
-      Serial.print(AN[1]);
-      Serial.print(",");
-      Serial.print(AN[2]);  
-      Serial.print(",");
-      Serial.print(AN[3]);
-      Serial.print (",");
-      Serial.print(AN[4]);
-      Serial.print (",");
-      Serial.print(AN[5]);
-      Serial.print(",");
-      Serial.print(c_magnetom_x);
-      Serial.print (",");
-      Serial.print(c_magnetom_y);
-      Serial.print (",");
-      Serial.print(c_magnetom_z);
+      SerialUSB.print(",AN:");
+      SerialUSB.print(AN[0]);  //(int)read_adc(0)
+      SerialUSB.print(",");
+      SerialUSB.print(AN[1]);
+      SerialUSB.print(",");
+      SerialUSB.print(AN[2]);  
+      SerialUSB.print(",");
+      SerialUSB.print(AN[3]);
+      SerialUSB.print (",");
+      SerialUSB.print(AN[4]);
+      SerialUSB.print (",");
+      SerialUSB.print(AN[5]);
+      SerialUSB.print(",");
+      SerialUSB.print(c_magnetom_x);
+      SerialUSB.print (",");
+      SerialUSB.print(c_magnetom_y);
+      SerialUSB.print (",");
+      SerialUSB.print(c_magnetom_z);
       #endif
       #if PRINT_DCM == 1
-      Serial.print (",DCM:");
-      Serial.print(DCM_Matrix[0][0]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[0][1]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[0][2]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[1][0]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[1][1]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[1][2]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[2][0]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[2][1]);
-      Serial.print (",");
-      Serial.print(DCM_Matrix[2][2]);
+      SerialUSB.print (",DCM:");
+      SerialUSB.print(DCM_Matrix[0][0]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[0][1]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[0][2]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[1][0]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[1][1]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[1][2]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[2][0]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[2][1]);
+      SerialUSB.print (",");
+      SerialUSB.print(DCM_Matrix[2][2]);
       #endif
-      Serial.println();
+      SerialUSB.println();
       
 }
 

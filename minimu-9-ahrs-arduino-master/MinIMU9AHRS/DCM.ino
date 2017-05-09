@@ -70,7 +70,7 @@ void Drift_correction(void)
   
   //*****Roll and Pitch***************
 
-  // Calculate the magnitude of the accelerometer vector
+  /*// Calculate the magnitude of the accelerometer vector
   Accel_magnitude = sqrt(Accel_Vector[0]*Accel_Vector[0] + Accel_Vector[1]*Accel_Vector[1] + Accel_Vector[2]*Accel_Vector[2]);
   Accel_magnitude = Accel_magnitude / GRAVITY; // Scale to gravity.
   // Dynamic weighting of accelerometer info (reliability filter)
@@ -81,12 +81,12 @@ void Drift_correction(void)
   Vector_Scale(&Omega_P[0],&errorRollPitch[0],Kp_ROLLPITCH*Accel_weight);
   
   Vector_Scale(&Scaled_Omega_I[0],&errorRollPitch[0],Ki_ROLLPITCH*Accel_weight);
-  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);     
+  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I); */    
   
   //*****YAW***************
   // We make the gyro YAW drift correction based on compass magnetic heading
  
-  mag_heading_x = cos(MAG_Heading);
+ /*mag_heading_x = cos(MAG_Heading);
   mag_heading_y = sin(MAG_Heading);
   errorCourse=(DCM_Matrix[0][0]*mag_heading_y) - (DCM_Matrix[1][0]*mag_heading_x);  //Calculating YAW error
   Vector_Scale(errorYaw,&DCM_Matrix[2][0],errorCourse); //Applys the yaw correction to the XYZ rotation of the aircraft, depeding the position.
@@ -95,7 +95,7 @@ void Drift_correction(void)
   Vector_Add(Omega_P,Omega_P,Scaled_Omega_P);//Adding  Proportional.
   
   Vector_Scale(&Scaled_Omega_I[0],&errorYaw[0],Ki_YAW);//.00001Integrator
-  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);//adding integrator to the Omega_I
+  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);//adding integrator to the Omega_I*/
 }
 /**************************************************/
 /*

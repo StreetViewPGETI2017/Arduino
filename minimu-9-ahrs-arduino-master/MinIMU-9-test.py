@@ -114,7 +114,7 @@ while 1:
     line = ser.readline()
     if line.find("!ANG:") != -1:          # filter out incomplete (invalid) lines
         line = line.replace("!ANG:","")   # Delete "!ANG:"
-        print line
+        print (line)
         f.write(line)                     # Write to the output log file
         words = string.split(line,",")    # Fields split
         if len(words) > 2:
@@ -123,7 +123,7 @@ while 1:
                 pitch = float(words[1])*grad2rad
                 yaw = float(words[2])*grad2rad
             except:
-                print "Invalid line"
+                print ("Invalid line")
 
             axis=(cos(pitch)*cos(yaw),-cos(pitch)*sin(yaw),sin(pitch)) 
             up=(sin(roll)*sin(yaw)+cos(roll)*sin(pitch)*cos(yaw),sin(roll)*cos(yaw)-cos(roll)*sin(pitch)*sin(yaw),-cos(roll)*cos(pitch))
