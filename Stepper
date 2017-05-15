@@ -1,0 +1,30 @@
+#include <Stepper.h>
+
+#define steps 32   
+#define moveSteps 32 * 64  //2048  
+
+Stepper stepper(steps, 8, 10, 9, 11);
+
+int waitingSteps;
+int direction;
+
+void stepperRotation(int direction)
+{
+  waitingSteps = direction * moveSteps / 16;
+  stepper.setSpeed(100);   
+  stepper.step(waitingSteps);
+  delay(4000);
+}
+
+
+void setup()  
+{
+  
+}
+
+
+void loop()
+{
+    direction = -1;
+    stepperRotation(direction);
+}
