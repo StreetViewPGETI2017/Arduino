@@ -1,13 +1,10 @@
-/*
-  Author : Krzysztof Dudziak
-*/
-
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 #include "utility/Adafruit_MS_PWMServoDriver.h"
 #include <Servo.h>
 //#include <RedBot.h>
 //#include <Encoder.h>
+#include <Stepper.h>
 
 
 #define GO_FORWARD 1
@@ -28,6 +25,8 @@
 #define END_OF_MESSAGE 'E'
 #define RX_SIZE 10//how large is buffor of receiving messages from USB
 
+#define steps 32   
+#define moveSteps 32 * 64  //2048  
 
 
 
@@ -180,6 +179,9 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 
 Servo cameraServo; // create servo object to control a servo
 
+//Stepper stepper(steps, 8, 10, 9, 11); // PINS TO CHANGE!
+int waitingSteps;
+
 int encoderPinL = 10;
 int encoderPinR = 11;
 
@@ -232,7 +234,7 @@ void readIMU() {
 
     // Calculations...
     Matrix_update();
-    Normalize();
+//    Normalize();
     Drift_correction();
     Euler_angles();
     // ***
@@ -529,6 +531,10 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
 void rotateCamera(int cameraDirection) //rotates camera
 {
+    waitingSteps = cameraDirection * moveSteps / 16;
+    stepper.setSpeed(100);   
+    stepper.step(waitingSteps);
+    delay(4000);
 
   /*for (int i = 0; i < 10; ++i)
     {
@@ -718,5 +724,4 @@ void loop() {
     clearDataFromUSB();
   }
 }
-
 
