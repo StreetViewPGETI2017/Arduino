@@ -53,12 +53,12 @@ void Drift_correction(void)
   Vector_Scale(&Omega_P[0],&errorRollPitch[0],Kp_ROLLPITCH*Accel_weight);
   
   Vector_Scale(&Scaled_Omega_I[0],&errorRollPitch[0],Ki_ROLLPITCH*Accel_weight);
-  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);     */
+  Vector_Add(Omega_I,Omega_I,Scaled_Omega_I);     
   
   //*****YAW***************
   // We make the gyro YAW drift correction based on compass magnetic heading
  
-  /*mag_heading_x = cos(MAG_Heading);
+  mag_heading_x = cos(MAG_Heading);
   mag_heading_y = sin(MAG_Heading);
   errorCourse=(DCM_Matrix[0][0]*mag_heading_y) - (DCM_Matrix[1][0]*mag_heading_x);  //Calculating YAW error
   Vector_Scale(errorYaw,&DCM_Matrix[2][0],errorCourse); //Applys the yaw correction to the XYZ rotation of the aircraft, depeding the position.

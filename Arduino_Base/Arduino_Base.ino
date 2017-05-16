@@ -439,7 +439,7 @@ float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwi
   motorFL->run(RELEASE);
   motorBR->run(RELEASE);
   motorBL->run(RELEASE);
-  return 30.0;
+  return 27.0;
 
 }
 
@@ -447,6 +447,7 @@ float turn(int turnDirection, float angle) //turning is tankwise
 {
   //float correction = 1.7;
   float correction = 1.0;
+  
   float copyAngle = angle / correction;
   if (detectObstacle(turnDirection, 20))
     return -1;
@@ -480,7 +481,7 @@ float turn(int turnDirection, float angle) //turning is tankwise
   float wejsciey = ToDeg(yaw);
   float wyjsciey = ToDeg(yaw);
 
-  int speed  = 255;
+  int speed  = 128;
   motorFR->setSpeed(speed);
   motorFL->setSpeed(speed);
   motorBR->setSpeed(speed);
@@ -489,13 +490,12 @@ float turn(int turnDirection, float angle) //turning is tankwise
   while ( abs(wyjsciey - wejsciey) < abs(copyAngle))
   {
     
-
-    //for ( int i = 0; i < 10; ++i)
-    //{
+    for ( int i = 0; i < 10; ++i)
+    {
       readIMU();
-    //}
+    }
     wyjsciey = ToDeg(yaw);
-    printdata();
+    //printdata();
 
 
     //s(sonar_forward,sonar_right,sonar_left)t(turn_in_degrees)E
@@ -531,10 +531,10 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
 void rotateCamera(int cameraDirection) //rotates camera
 {
-    waitingSteps = cameraDirection * moveSteps / 16;
+    /*waitingSteps = cameraDirection * moveSteps / 16;
     stepper.setSpeed(100);   
     stepper.step(waitingSteps);
-    delay(4000);
+    delay(4000);*/
 
   /*for (int i = 0; i < 10; ++i)
     {
@@ -575,6 +575,34 @@ void rotateCamera(int cameraDirection) //rotates camera
     printdata();
   }
   delay(500);
+}
+
+void calibrate()
+{
+  Accel_Init();
+  Compass_Init();
+  Gyro_Init();
+  //SerialUSB.println("test3");
+  delay(20);
+
+  for (int i = 0; i < 32; i++) // We take some readings...
+  {
+    Read_Gyro();
+    Read_Accel();
+    //SerialUSB.println("test4");
+    for (int y = 0; y < 6; y++) // Cumulate values
+      AN_OFFSET[y] += AN[y];
+    delay(20);
+  }
+
+  for (int y = 0; y < 6; y++)
+    AN_OFFSET[y] = AN_OFFSET[y] / 32;
+
+  AN_OFFSET[5] -= GRAVITY * SENSOR_SIGN[5];
+
+  //Serial.println("Offset:");
+  for (int y = 0; y < 6; y++)
+    SerialUSB.println(AN_OFFSET[y]);
 }
 
 void setup() {
@@ -643,10 +671,10 @@ void setup() {
 }
 
 void loop() {
-  for ( int i = 0; i < 20; ++i)
+  /*for ( int i = 0; i < 20; ++i)
   {
     readIMU();
-  }
+  }*/
   //readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (fromUSB.received) {
@@ -668,30 +696,30 @@ void loop() {
     }
     else if (fromUSB.command == "l")       //left
     {
-      argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
-      //String(turn(TURN_LEFT, 500, 128));
-      //argument = String(30.0);
+      //argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
+      String(turn(TURN_LEFT, 550, 128));
+      argument = String(30.0);
       integerArg = 30;
     }
     else if (fromUSB.command  == "r")      //right
     {
-      argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
-      //String(turn(TURN_RIGHT, 500, 128));
-      //argument = String(30.0);
+      //argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
+      String(turn(TURN_RIGHT, 570, 128));
+      argument = String(30.0);
       integerArg = 30;
     }
     else if (fromUSB.command  == "p")     //camera rotation right
     {
       //rotateCamera(1);
       //turn(TURN_RIGHT, 20.0);
-      String(turn(TURN_RIGHT, 500, 128));
+      String(turn(TURN_RIGHT, 570, 128));
       argument = String(30.0);
     }
     else if (fromUSB.command  == "q")     //camera rotation left
     {
       //rotateCamera(-1);
       //turn(TURN_LEFT, 20.0);
-      String(turn(TURN_LEFT, 500, 128));
+      String(turn(TURN_LEFT, 550, 128));
       argument = String(30.0);
     }
     else if (fromUSB.command == "i")      //IMU data sending
@@ -718,6 +746,11 @@ void loop() {
       argument = "(" + String(readSonicForward()) +
                  "," + String(readSonicRight()) +
                  "," + String(readSonicLeft()) + ")";
+    }
+    else if (fromUSB.command == "c")
+    {
+      calibrate();
+      argument = "Calibrated";
     }
 
     sendConfirmation(fromUSB.command, String(argument));
