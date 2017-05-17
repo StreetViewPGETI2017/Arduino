@@ -179,11 +179,11 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 
 Servo cameraServo; // create servo object to control a servo
 
-//Stepper stepper(steps, 8, 10, 9, 11); // PINS TO CHANGE!
+Stepper stepper(steps, 8, 10, 9, 11); // PINS TO CHANGE!
 int waitingSteps;
 
-int encoderPinL = 10;
-int encoderPinR = 11;
+int encoderPinL = 0; //10
+int encoderPinR = 1; //11
 
 volatile int lCount = 0;
 volatile int rCount = 0;
@@ -529,12 +529,12 @@ float turn(int turnDirection, float angle) //turning is tankwise
   return (correction * abs(wyjsciey - wejsciey));
 }
 
-void rotateCamera(int cameraDirection) //rotates camera
+float rotateCamera(int cameraDirection,int camSpeed) //rotates camera
 {
-    /*waitingSteps = cameraDirection * moveSteps / 16;
-    stepper.setSpeed(100);   
+    waitingSteps = cameraDirection * moveSteps / 16;
+    stepper.setSpeed(camSpeed); //0-255  
     stepper.step(waitingSteps);
-    delay(4000);*/
+    //delay(4000);
 
   /*for (int i = 0; i < 10; ++i)
     {
@@ -565,7 +565,7 @@ void rotateCamera(int cameraDirection) //rotates camera
     }*/
   //cameraStep = 1.5;
   //SerialUSB.println(cameraDirection);
-  cameraServo.write(95 + cameraDirection * 1.5);
+  /*cameraServo.write(95 + cameraDirection * 1.5);
   //waitForRaspberry();
   delay(500 + (-1 + cameraDirection) * 50);
   cameraServo.write(95);
@@ -574,7 +574,8 @@ void rotateCamera(int cameraDirection) //rotates camera
     readIMU();
     printdata();
   }
-  delay(500);
+  delay(500);*/
+  return 22.5;
 }
 
 void calibrate()
@@ -710,17 +711,17 @@ void loop() {
     }
     else if (fromUSB.command  == "p")     //camera rotation right
     {
-      //rotateCamera(1);
+      argument = String(rotateCamera(1,fromUSB.argument));
       //turn(TURN_RIGHT, 20.0);
-      String(turn(TURN_RIGHT, 570, 128));
-      argument = String(30.0);
+      //String(turn(TURN_RIGHT, 570, 128));
+      //argument = String(22.5);
     }
     else if (fromUSB.command  == "q")     //camera rotation left
     {
-      //rotateCamera(-1);
+      argument = String(rotateCamera(-1,fromUSB.argument));
       //turn(TURN_LEFT, 20.0);
-      String(turn(TURN_LEFT, 550, 128));
-      argument = String(30.0);
+      //String(turn(TURN_LEFT, 550, 128));
+      //argument = String(22.5);
     }
     else if (fromUSB.command == "i")      //IMU data sending
     {
