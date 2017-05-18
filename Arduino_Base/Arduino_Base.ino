@@ -5,8 +5,6 @@
 //#include <RedBot.h>
 //#include <Encoder.h>
 #include <Stepper.h>
-#include <RunningMedian.h>
-
 
 
 #define GO_FORWARD 1
@@ -194,7 +192,6 @@ volatile double distanceDrivenR = 0;
 
 int previousStateEncL = LOW;
 int previousStateEncR = LOW;
-
 
 
 //RedBotEncoder encoder = RedBotEncoder(A1, A2);  //left encoder, right encoder;
@@ -633,7 +630,7 @@ void setup() {
   pinMode (STATUS_LED, OUTPUT); // Status LED
 
   //SerialUSB.println("test1");
-  //I2C_Init();
+  I2C_Init();
   //SerialUSB.println("test2");
 
   digitalWrite(STATUS_LED, LOW);
@@ -746,19 +743,9 @@ void loop() {
     {
       //sonar data
       //s(sonar_forward,sonar_right,sonar_left)E
-      int samplesNumber = 5;
-      RunningMedian samplesForward = RunningMedian(samplesNumber );
-      RunningMedian samplesRight = RunningMedian(samplesNumber );
-      RunningMedian samplesLeft = RunningMedian(samplesNumber );
-      for(int i = 0 ;i < samplesNumber ; i++)
-      {
-        samplesForward.add(readSonicForward());
-        samplesRight.add(readSonicRight());
-        samplesLeft.add(readSonicLeft());
-      }
-      argument = "(" + String(samplesForward.getMedian()) +
-                 "," + String(samplesRight.getMedian()) +
-                 "," + String(samplesLeft.getMedian()) + ")";
+      argument = "(" + String(readSonicForward()) +
+                 "," + String(readSonicRight()) +
+                 "," + String(readSonicLeft()) + ")";
     }
     else if (fromUSB.command == "c")
     {
