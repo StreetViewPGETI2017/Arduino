@@ -93,7 +93,7 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 /*For debugging purposes*/
 //OUTPUTMODE=1 will print the corrected data,
 //OUTPUTMODE=0 will print uncorrected data of the gyros (with drift)
-#define OUTPUTMODE 1
+#define OUTPUTMODE 0
 
 #define PRINT_DCM 0     //Will print the whole direction cosine matrix
 #define PRINT_ANALOGS 0 //Will print the analog raw data
@@ -672,7 +672,7 @@ void setup() {
   for (int y = 0; y < 6; y++)
     SerialUSB.println(AN_OFFSET[y]);
 
-  delay(2000);*/
+  delay(2000);
   digitalWrite(STATUS_LED, HIGH);
 
   timer = millis();
