@@ -159,7 +159,7 @@ float Temporary_Matrix[3][3]={
 #define ENCODER_POLES 8
 #define MAX_VELOCITY 200 // total max is 255
 #define distanceForTick 4.69 //wheel round / encoder poles
-#define SEND_INFO_LOOP true
+#define SEND_INFO_LOOP false
 
 struct dataFromUSB //structure for reading USB command, arguments
 {
