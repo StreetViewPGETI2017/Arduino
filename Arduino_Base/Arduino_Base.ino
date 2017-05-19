@@ -457,18 +457,14 @@ float turn(int turnDirection, float angle) //turning is tankwise
     }
     wyjsciey = ToDeg(yaw);
     //printdata();
-
-
-    //s(sonar_forward,sonar_right,sonar_left)t(turn_in_degrees)E
-    /*String stringToSend = "s(" + String(readSonicForward()) +
-                          "," + String(readSonicRight()) +
-                          "," + String(readSonicLeft()) + ")" +
-                          "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;*/
-    String stringToSend = "s(" + String(wyjsciey) +
-                          "," + String(wejsciey) +
-                          "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
-    SerialUSB.println(stringToSend);
-
+    
+    if (SEND_INFO_LOOP)
+    { 
+      String stringToSend = "s(" + String(wyjsciey) +
+                            "," + String(wejsciey) +
+                            "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
+      SerialUSB.println(stringToSend);
+    }
     if ((wyjsciey - wejsciey) > 180)
       wyjsciey -= 360;
     else if ((wyjsciey - wejsciey) < -180)
