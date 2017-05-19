@@ -26,4 +26,3 @@ void Compass_Heading()
   // Magnetic Heading
   MAG_Heading = atan2(-MAG_Y,MAG_X);
 }
-
