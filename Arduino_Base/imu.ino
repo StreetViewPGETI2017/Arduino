@@ -80,7 +80,7 @@ float readIMU()
     Euler_angles();
     // ***
 
-    printdata();
+    //printdata();
     return ToDeg(yaw);
   }
 }
