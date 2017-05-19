@@ -5,6 +5,7 @@
 //#include <RedBot.h>
 //#include <Encoder.h>
 #include <Stepper.h>
+#include <RunningMedian.h>
 
 
 #define GO_FORWARD 1
@@ -29,27 +30,34 @@
 #define moveSteps 32 * 64  //2048  
 
 
+/*You should have received a copy of the GNU Lesser General Public License along
+with MinIMU-9-Arduino-AHRS. If not, see <http://www.gnu.org/licenses/>.
 
+*/
+
+// Uncomment the following line to use a MinIMU-9 v5 or AltIMU-10 v5. Leave commented for older IMUs (up through v4).
 //#define IMU_V5
 
 // Uncomment the below line to use this axis definition:
-// X axis pointing forward
-// Y axis pointing to the right
-// and Z axis pointing down.
+   // X axis pointing forward
+   // Y axis pointing to the right
+   // and Z axis pointing down.
 // Positive pitch : nose up
 // Positive roll : right wing down
 // Positive yaw : clockwise
-int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
 // Uncomment the below line to use this axis definition:
-// X axis pointing forward
-// Y axis pointing to the left
-// and Z axis pointing up.
+   // X axis pointing forward
+   // Y axis pointing to the left
+   // and Z axis pointing up.
 // Positive pitch : nose down
 // Positive roll : right wing down
 // Positive yaw : counterclockwise
 //int SENSOR_SIGN[9] = {1,-1,-1,-1,1,1,1,-1,-1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
 
-//#include <Wire.h>
+// tested with Arduino Uno with ATmega328 and Arduino Duemilanove with ATMega168
+
+#include <Wire.h>
 
 // accelerometer: 8 g sensitivity
 // 3.9 mg/digit; 1 g = 256
@@ -66,6 +74,9 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 #define Gyro_Scaled_X(x) ((x)*ToRad(Gyro_Gain_X)) //Return the scaled ADC raw data of the gyro in radians for second
 #define Gyro_Scaled_Y(x) ((x)*ToRad(Gyro_Gain_Y)) //Return the scaled ADC raw data of the gyro in radians for second
 #define Gyro_Scaled_Z(x) ((x)*ToRad(Gyro_Gain_Z)) //Return the scaled ADC raw data of the gyro in radians for second
+
+// LSM303/LIS3MDL magnetometer calibration constants; use the Calibrate example from
+// the Pololu LSM303 or LIS3MDL library to find the right values for your board
 
 #define M_X_MIN -1000
 #define M_Y_MIN -1000
@@ -90,19 +101,13 @@ int SENSOR_SIGN[9] = {1, 1, 1, -1, -1, -1, 1, 1, 1}; //Correct directions x,y,z 
 
 #define STATUS_LED 13
 
-//CONTROL/MOVE DEFINITIONS:
-#define ENCODER_POLES 8
-#define MAX_VELOCITY 200 // total max is 255
-#define distanceForTick 4.69 //wheel round / encoder poles
-#define SEND_INFO_LOOP true
+float G_Dt=0.02;    // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
-float G_Dt = 0.02;  // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
-
-long timer = 0; //general purpuse timer
+long timer=0;   //general purpuse timer
 long timer_old;
-long timer24 = 0; //Second timer used to print values
+long timer24=0; //Second timer used to print values
 int AN[6]; //array that stores the gyro and accelerometer data
-int AN_OFFSET[6] = {0, 0, 0, 0, 0, 0}; //Array that stores the Offset of the sensors
+int AN_OFFSET[6]={0,0,0,0,0,0}; //Array that stores the Offset of the sensors
 
 int gyro_x;
 int gyro_y;
@@ -118,49 +123,49 @@ float c_magnetom_y;
 float c_magnetom_z;
 float MAG_Heading;
 
-float Accel_Vector[3] = {0, 0, 0}; //Store the acceleration in a vector
-float Gyro_Vector[3] = {0, 0, 0}; //Store the gyros turn rate in a vector
-float Omega_Vector[3] = {0, 0, 0}; //Corrected Gyro_Vector data
-float Omega_P[3] = {0, 0, 0}; //Omega Proportional correction
-float Omega_I[3] = {0, 0, 0}; //Omega Integrator
-float Omega[3] = {0, 0, 0};
+float Accel_Vector[3]= {0,0,0}; //Store the acceleration in a vector
+float Gyro_Vector[3]= {0,0,0};//Store the gyros turn rate in a vector
+float Omega_Vector[3]= {0,0,0}; //Corrected Gyro_Vector data
+float Omega_P[3]= {0,0,0};//Omega Proportional correction
+float Omega_I[3]= {0,0,0};//Omega Integrator
+float Omega[3]= {0,0,0};
 
 // Euler angles
 float roll;
 float pitch;
 float yaw;
 
-float errorRollPitch[3] = {0, 0, 0};
-float errorYaw[3] = {0, 0, 0};
+float errorRollPitch[3]= {0,0,0};
+float errorYaw[3]= {0,0,0};
 
-unsigned int counter = 0;
-byte gyro_sat = 0;
+unsigned int counter=0;
+byte gyro_sat=0;
 
-float DCM_Matrix[3][3] = {
+float DCM_Matrix[3][3]= {
   {
-    1, 0, 0
-  }
-  , {
-    0, 1, 0
-  }
-  , {
-    0, 0, 1
-  }
+    1,0,0  }
+  ,{
+    0,1,0  }
+  ,{
+    0,0,1  }
 };
-float Update_Matrix[3][3] = {{0, 1, 2}, {3, 4, 5}, {6, 7, 8}}; //Gyros here
+float Update_Matrix[3][3]={{0,1,2},{3,4,5},{6,7,8}}; //Gyros here
 
 
-float Temporary_Matrix[3][3] = {
+float Temporary_Matrix[3][3]={
   {
-    0, 0, 0
-  }
-  , {
-    0, 0, 0
-  }
-  , {
-    0, 0, 0
-  }
+    0,0,0  }
+  ,{
+    0,0,0  }
+  ,{
+    0,0,0  }
 };
+
+//CONTROL/MOVE DEFINITIONS:
+#define ENCODER_POLES 8
+#define MAX_VELOCITY 200 // total max is 255
+#define distanceForTick 4.69 //wheel round / encoder poles
+#define SEND_INFO_LOOP true
 
 struct dataFromUSB //structure for reading USB command, arguments
 {
@@ -205,7 +210,7 @@ int previousStateEncR = LOW;
 
 int servoTurn = 5;
 
-void readIMU() {
+/*void readIMU() {
   if ((millis() - timer) >= 20) // Main loop runs at 50Hz
   {
     counter++;
@@ -234,14 +239,14 @@ void readIMU() {
 
     // Calculations...
     Matrix_update();
-//    Normalize();
+    Normalize();
     Drift_correction();
     Euler_angles();
     // ***
     //for (int i = 0; i < 100; ++i)
     //printdata();
   }
-}
+}*/
 
 long* readSonicData() {
   //long forwardDistance, leftDistance, rightDistance;
@@ -499,9 +504,12 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
 
     //s(sonar_forward,sonar_right,sonar_left)t(turn_in_degrees)E
-    String stringToSend = "s(" + String(readSonicForward()) +
+    /*String stringToSend = "s(" + String(readSonicForward()) +
                           "," + String(readSonicRight()) +
                           "," + String(readSonicLeft()) + ")" +
+                          "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;*/
+    String stringToSend = "s(" + String(wyjsciey) +
+                          "," + String(wejsciey) +
                           "t(" + String(correction * abs(wyjsciey - wejsciey)) + ")" + END_OF_MESSAGE;
     SerialUSB.println(stringToSend);
 
@@ -515,9 +523,9 @@ float turn(int turnDirection, float angle) //turning is tankwise
   motorBR->setSpeed(0);
   motorBL->setSpeed(0);
 
-  float wyjscier = ToDeg(roll);
+  /*float wyjscier = ToDeg(roll);
   float wyjsciep = ToDeg(pitch);
-  // float wyjsciey = ToDeg(yaw);
+  // float wyjsciey = ToDeg(yaw);*/
 
   //SerialUSB.print("degrees: ");
   // SerialUSB.println(correction * abs(wyjsciey - wejsciey));
@@ -607,7 +615,7 @@ void calibrate()
 }
 
 void setup() {
-  SerialUSB.begin(9600);           // set up SerialUSB library at 9600 bps
+  SerialUSB.begin(115200);           // set up SerialUSB library at 9600 bps
 
   SerialUSB.println("start");
 
@@ -627,7 +635,9 @@ void setup() {
   attachInterrupt(encoderPinL, tickL, CHANGE);
   attachInterrupt(encoderPinR, tickR, CHANGE);
 
-  //Serial.begin(115200);
+  initIMU();
+
+  /*//Serial.begin(115200);
   pinMode (STATUS_LED, OUTPUT); // Status LED
 
   //SerialUSB.println("test1");
@@ -636,8 +646,8 @@ void setup() {
 
   digitalWrite(STATUS_LED, LOW);
   delay(1500);
-/*
-  Accel_Init();
+
+  /*Accel_Init();
   Compass_Init();
   Gyro_Init();
   //SerialUSB.println("test3");
@@ -662,12 +672,12 @@ void setup() {
   for (int y = 0; y < 6; y++)
     SerialUSB.println(AN_OFFSET[y]);
 
-  delay(2000);*/
+  delay(2000);
   digitalWrite(STATUS_LED, HIGH);
 
   timer = millis();
   delay(20);
-  counter = 0;
+  counter = 0;*/
   //your own initializattion code
 }
 
@@ -697,17 +707,17 @@ void loop() {
     }
     else if (fromUSB.command == "l")       //left
     {
-      //argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
-      String(turn(TURN_LEFT, 550, 128));
+      argument = String(turn(TURN_LEFT, fromUSB.argument));//turn left, get value and assign
+      /*String(turn(TURN_LEFT, 550, 128));
       argument = String(30.0);
-      integerArg = 30;
+      integerArg = 30;*/
     }
     else if (fromUSB.command  == "r")      //right
     {
-      //argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
-      String(turn(TURN_RIGHT, 570, 128));
+      argument = String(turn(TURN_RIGHT, fromUSB.argument));//turn right, get value and assign
+      /*String(turn(TURN_RIGHT, 570, 128));
       argument = String(30.0);
-      integerArg = 30;
+      integerArg = 30;*/
     }
     else if (fromUSB.command  == "p")     //camera rotation right
     {
@@ -743,10 +753,24 @@ void loop() {
     else if (fromUSB.command == "s")    //sonars data sending
     {
       //sonar data
+      int samplesNumber = 5;
+      RunningMedian samplesForward = RunningMedian(samplesNumber );
+      RunningMedian samplesRight = RunningMedian(samplesNumber );
+      RunningMedian samplesLeft = RunningMedian(samplesNumber );
+      for(int i = 0 ;i < samplesNumber ; i++)
+      {
+        samplesForward.add(readSonicForward());
+        samplesRight.add(readSonicRight());
+        samplesLeft.add(readSonicLeft());
+      }
+      argument = "(" + String(samplesForward.getMedian()) +
+                 "," + String(samplesRight.getMedian()) +
+                 "," + String(samplesLeft.getMedian()) + ")";
+
       //s(sonar_forward,sonar_right,sonar_left)E
-      argument = "(" + String(readSonicForward()) +
+      /*argument = "(" + String(readSonicForward()) +
                  "," + String(readSonicRight()) +
-                 "," + String(readSonicLeft()) + ")";
+                 "," + String(readSonicLeft()) + ")";*/
     }
     else if (fromUSB.command == "c")
     {
