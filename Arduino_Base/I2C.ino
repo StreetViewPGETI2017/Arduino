@@ -21,11 +21,19 @@ LSM303 compass;
 
 void I2C_Init()
 {
+  /*
+   * This function: 
+   * 1. Initializes I2C
+   */
   Wire.begin();
 }
 
 void Gyro_Init()
 {
+  /*
+   * This function: 
+   * 1. Initializes gyroscope in a way that depends on the type of IMU used
+   */
 #ifdef IMU_V5
   // Accel_Init() should have already called gyro_acc.init() and enableDefault()
   gyro_acc.writeReg(LSM6::CTRL2_G, 0x4C); // 104 Hz, 2000 dps full scale
@@ -39,6 +47,11 @@ void Gyro_Init()
 
 void Read_Gyro()
 {
+  /*
+   * This function: 
+   * 1. Reads data from gyroscope and stores them in AN. 
+   * 2. Uses sensor offset to get correct readings of gyroscope
+   */
 #ifdef IMU_V5
   gyro_acc.readGyro();
 
@@ -60,6 +73,11 @@ void Read_Gyro()
 
 void Accel_Init()
 {
+  /*
+   * This function:
+   * 1. Initializes accelerometer
+   * 2. Initializes compass
+   */
 #ifdef IMU_V5
   gyro_acc.init();
   gyro_acc.enableDefault();
@@ -81,8 +99,12 @@ void Accel_Init()
 #endif
 }
 
-// Reads x,y and z accelerometer registers
 void Read_Accel()
+/*
+ * This function:
+ * 1. Reads x,y,z data from accelerometer, either by gyro_acc unit or by compass and stores them in AN
+ * 2. Uses sensor offset to get correct readings of accelerometer
+ */
 {
 #ifdef IMU_V5
   gyro_acc.readAcc();
@@ -104,6 +126,10 @@ void Read_Accel()
 
 void Compass_Init()
 {
+  /*
+   * This function:
+   * 1. Initializes compass and, by extension megnetometer
+   */
 #ifdef IMU_V5
   mag.init();
   mag.enableDefault();
@@ -114,6 +140,10 @@ void Compass_Init()
 
 void Read_Compass()
 {
+  /*
+   * This function:
+   * 1. Reads data from compass or directly from magnetometer depending on IMU version
+   */
 #ifdef IMU_V5
   mag.read();
 

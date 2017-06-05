@@ -2,6 +2,16 @@
 
 void initIMU()
 {
+  /*
+   * This function:
+   * 1. Initializes I2C
+   * 2. Initializes accelererometer
+   * 3. Initializes compass
+   * 4. Initializes gyroscope
+   * 5. Calculates sensor offset
+   * 6. Starts timer
+   * 7. The overall result is fully initialized IMU
+   */
   pinMode (STATUS_LED,OUTPUT);  // Status LED
 
   I2C_Init();
@@ -17,6 +27,7 @@ void initIMU()
 
   delay(20);
 
+  //offset calculation
   for(int i=0;i<32;i++)    // We take some readings...
     {
     Read_Gyro();
@@ -45,6 +56,13 @@ void initIMU()
 
 float readIMU()
 {
+  /*
+   * This function:
+   * 1. Sets up frequency and time intervals for IMU readings
+   * 2. Runs DCM algorithm
+   * 3. Normalizes data, eliminates drift effect and calculates euler angles 
+   * 4. Returns yaw angle (around z axis)
+   */
   if((millis()-timer)>=20)  // Main loop runs at 50Hz
   {
     counter++;

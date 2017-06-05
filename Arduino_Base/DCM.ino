@@ -3,6 +3,10 @@
 /**************************************************/
 void Normalize(void)
 {
+  /*
+   * This function:
+   * 1. Normalizes data stored in DCM matrix
+   */
   float error=0;
   float temporary[3][3];
   float renorm=0;
@@ -30,6 +34,11 @@ void Normalize(void)
 /**************************************************/
 void Drift_correction(void)
 {
+  /*
+   * This function;
+   * 1. Corrects values of roll and pitch angles by using accelerometer
+   * 2. Corrects value of yaw angle by using magnetometer and values acquired in roll and pitch correction
+   */
   float mag_heading_x;
   float mag_heading_y;
   float errorCourse;
@@ -61,7 +70,7 @@ void Drift_correction(void)
   mag_heading_x = cos(MAG_Heading);
   mag_heading_y = sin(MAG_Heading);
   errorCourse=(DCM_Matrix[0][0]*mag_heading_y) - (DCM_Matrix[1][0]*mag_heading_x);  //Calculating YAW error
-  Vector_Scale(errorYaw,&DCM_Matrix[2][0],errorCourse); //Applys the yaw correction to the XYZ rotation of the aircraft, depeding the position.
+  Vector_Scale(errorYaw,&DCM_Matrix[2][0],errorCourse); //Applys the yaw correction to the XYZ rotation of the robot, depeding the position.
   
   Vector_Scale(&Scaled_Omega_P[0],&errorYaw[0],Kp_YAW);//.01proportional of YAW.
   Vector_Add(Omega_P,Omega_P,Scaled_Omega_P);//Adding  Proportional.
@@ -81,6 +90,12 @@ void Accel_adjust(void)
 
 void Matrix_update(void)
 {
+  /*
+   * This function:
+   * 1. Updates Gyro_Vector matrix
+   * 2. Updates Accel_Vector matrix
+   * 3. Updates DCM matrix based on whether or not drift correction is used
+   */
   Gyro_Vector[0]=Gyro_Scaled_X(gyro_x); //gyro x roll
   Gyro_Vector[1]=Gyro_Scaled_Y(gyro_y); //gyro y pitch
   Gyro_Vector[2]=Gyro_Scaled_Z(gyro_z); //gyro Z yaw
@@ -129,6 +144,10 @@ void Matrix_update(void)
 
 void Euler_angles(void)
 {
+  /*
+   * This function:
+   * 1. Calculates euler angles
+   */
   pitch = -asin(DCM_Matrix[2][0]);
   roll = atan2(DCM_Matrix[2][1],DCM_Matrix[2][2]);
   yaw = atan2(DCM_Matrix[1][0],DCM_Matrix[0][0]);

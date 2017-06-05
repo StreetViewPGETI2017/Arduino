@@ -8,28 +8,29 @@
 #include <RunningMedian.h>
 
 
-#define GO_FORWARD 1
-#define GO_BACKWARD 2
-#define TURN_LEFT 3
-#define TURN_RIGHT 4
-#define SERVO_PIN 9
+#define GO_FORWARD 1  //Will make robot go forward
+#define GO_BACKWARD 2 //Will make robot go backwards
+#define TURN_LEFT 3   //Will make robot turn left
+#define TURN_RIGHT 4  //Will make robot turn right
+#define SERVO_PIN 9   //Pin attached to servo
 
-#define WAIT_TIME 10000 //how much time should wait for Raspberry(for receive command 'w')
+#define WAIT_TIME 10000 //How much time should wait for Raspberry(for receive command 'w')
 
-#define trigPinForward 2
-#define echoPinForward 3
-#define trigPinLeft 6
-#define echoPinLeft 7
-#define trigPinRight 4
-#define echoPinRight 5
+#define trigPinForward 2  //Trigger pin for forward sonar
+#define echoPinForward 3  //Echo pin for forward sonar
+#define trigPinLeft 6     //Trigger pin for left sonar
+#define echoPinLeft 7     //Echo pin for left sonar
+#define trigPinRight 4    //Trigger pin for right sonar
+#define echoPinRight 5    //Echo pin for left sonar
 
-#define END_OF_MESSAGE 'E'
-#define RX_SIZE 10//how large is buffor of receiving messages from USB
+#define END_OF_MESSAGE 'E'  //End of message sing
+#define RX_SIZE 10        //How large is buffor of receiving messages from USB
 
-#define steps 32   
+#define steps 32   //Steps for step motor
 #define moveSteps 32 * 64  //2048  
 
-// Uncomment the following line to use a MinIMU-9 v5 or AltIMU-10 v5. Leave commented for older IMUs (up through v4).
+//For better IMU
+//Uncomment the following line to use a MinIMU-9 v5 or AltIMU-10 v5. Leave commented for older IMUs (up through v4).
 //#define IMU_V5
 
 // Uncomment the below line to use this axis definition:
@@ -39,7 +40,9 @@
 // Positive pitch : nose up
 // Positive roll : right wing down
 // Positive yaw : clockwise
+
 int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
+
 // Uncomment the below line to use this axis definition:
    // X axis pointing forward
    // Y axis pointing to the left
@@ -48,10 +51,6 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 // Positive roll : right wing down
 // Positive yaw : counterclockwise
 //int SENSOR_SIGN[9] = {1,-1,-1,-1,1,1,1,-1,-1}; //Correct directions x,y,z - gyro, accelerometer, magnetometer
-
-// tested with Arduino Uno with ATmega328 and Arduino Duemilanove with ATMega168
-
-#include <Wire.h>
 
 // accelerometer: 8 g sensitivity
 // 3.9 mg/digit; 1 g = 256
@@ -72,6 +71,7 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 // LSM303/LIS3MDL magnetometer calibration constants; use the Calibrate example from
 // the Pololu LSM303 or LIS3MDL library to find the right values for your board
 
+//IMU limits
 #define M_X_MIN -1000
 #define M_Y_MIN -1000
 #define M_Z_MIN -1000
@@ -79,14 +79,14 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 #define M_Y_MAX +1000
 #define M_Z_MAX +1000
 
+//IMU angle constants
 #define Kp_ROLLPITCH 0.02
 #define Ki_ROLLPITCH 0.00002
 #define Kp_YAW 1.2
 #define Ki_YAW 0.00002
 
-/*For debugging purposes*/
 //OUTPUTMODE=1 will print the corrected data,
-//OUTPUTMODE=0 will print uncorrected data of the gyros (with drift)
+//OUTPUTMODE=0 will print uncorrected data of the gyros (with drift) - it proved to be more effective in rapidly changing position of robot
 #define OUTPUTMODE 0
 
 #define PRINT_DCM 0     //Will print the whole direction cosine matrix
@@ -97,12 +97,13 @@ int SENSOR_SIGN[9] = {1,1,1,-1,-1,-1,1,1,1}; //Correct directions x,y,z - gyro, 
 
 float G_Dt=0.02;    // Integration time (DCM algorithm)  We will run the integration loop at 50Hz if possible
 
-long timer=0;   //general purpuse timer
+long timer=0;   //General purpuse timer
 long timer_old;
 long timer24=0; //Second timer used to print values
-int AN[6]; //array that stores the gyro and accelerometer data
+int AN[6]; //Array that stores the gyro and accelerometer data
 int AN_OFFSET[6]={0,0,0,0,0,0}; //Array that stores the Offset of the sensors
 
+//IMU readings
 int gyro_x;
 int gyro_y;
 int gyro_z;
@@ -129,12 +130,14 @@ float roll;
 float pitch;
 float yaw;
 
+// Euler angle errors
 float errorRollPitch[3]= {0,0,0};
 float errorYaw[3]= {0,0,0};
 
 unsigned int counter=0;
-byte gyro_sat=0;
+byte gyro_sat=0;  //Gyroscope saturation
 
+//DCM matrix
 float DCM_Matrix[3][3]= {
   {
     1,0,0  }
@@ -143,9 +146,11 @@ float DCM_Matrix[3][3]= {
   ,{
     0,0,1  }
 };
+
+//Update Matrix for gyroscope readings
 float Update_Matrix[3][3]={{0,1,2},{3,4,5},{6,7,8}}; //Gyros here
 
-
+//Temporary matrix
 float Temporary_Matrix[3][3]={
   {
     0,0,0  }
@@ -156,12 +161,13 @@ float Temporary_Matrix[3][3]={
 };
 
 //CONTROL/MOVE DEFINITIONS:
-#define ENCODER_POLES 8
-#define MAX_VELOCITY 200 // total max is 255
-#define distanceForTick 4.69 //wheel round / encoder poles
+#define ENCODER_POLES 8 //Number of encoder poles
+#define MAX_VELOCITY 200 // Robot maximum allowed velocity - Total max is 255
+#define distanceForTick 4.69 //How many centimeters robot moves between ticks -> wheel round / encoder poles
 #define SEND_INFO_LOOP false
 
-struct dataFromUSB //structure for reading USB command, arguments
+//Structure for reading USB command, arguments
+struct dataFromUSB 
 {
   String command = "";
   int argument = 0 ;
@@ -169,7 +175,7 @@ struct dataFromUSB //structure for reading USB command, arguments
 };
 dataFromUSB fromUSB;
 
-Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();   //Motorshield for motors
 
 Adafruit_DCMotor *motorFR = AFMS.getMotor(1); //create a motor instance
 Adafruit_DCMotor *motorFL = AFMS.getMotor(2);
@@ -178,33 +184,26 @@ Adafruit_DCMotor *motorBR = AFMS.getMotor(4);
 
 Servo cameraServo; // create servo object to control a servo
 
-Stepper stepper(steps, 8, 10, 9, 11); // PINS TO CHANGE!
-int waitingSteps;
+Stepper stepper(steps, 8, 10, 9, 11); // Number of steps and which pins were used to control stepper motor
+int waitingSteps;   //Waiting steps for stepper motors
 
-int encoderPinL = 0; //10
-int encoderPinR = 1; //11
+int encoderPinL = 0; //Left encoder pin
+int encoderPinR = 1; //Right encoder pin
 
-volatile int lCount = 0;
-volatile int rCount = 0;
-volatile double distanceDrivenL = 0;
-volatile double distanceDrivenR = 0;
+volatile int lCount = 0; //Left encoder counter
+volatile int rCount = 0; //Right encoder counter
+volatile double distanceDrivenL = 0; //Distance covered by left wheel
+volatile double distanceDrivenR = 0; //Distence covered by rigth wheel
 
+//Previous states of encoders
 int previousStateEncL = LOW;
 int previousStateEncR = LOW;
 
-
-//RedBotEncoder encoder = RedBotEncoder(A1, A2);  //left encoder, right encoder;
-/*Encoder myEnc(10, 11);
-
-  long oldPosition  = -999;
-  unsigned long oldTime = 0;
-
-  double countsPerRevolution = 48.0; // encoder counts per revolution of the motor shaft
-  double gearRatio = 75.0; // the gear ratio of the motor is 75:1*/
-
-int servoTurn = 5;
-
 long* readSonicData() {
+  /*
+   * This function:
+   * 1. Reads data from sonars
+   */
   //long forwardDistance, leftDistance, rightDistance;
 
   long distance[3];
@@ -217,16 +216,23 @@ long* readSonicData() {
 
 void tickL() //left encoder
 {
+  /*
+   * This function counts driven distance by left wheel from enoder ticks
+   */
   lCount++;
   distanceDrivenL = lCount * distanceForTick;
 }
 
 void tickR() // right encoder
 {
+  /*
+   * This function counts driven distance by right wheel from encoder ticks
+   */
   rCount++;
 //  distanceDrivenR =  rCount * distanceForTick;
 }
 
+//Function unused, but has great potential so it will be left
 /*void getEncoderPosition(){
 
   //Read encoder counts
@@ -254,6 +260,16 @@ void tickR() // right encoder
 
 void moveStraight(int moveDirection, double distance)
 {
+  /*
+   * This function:
+   * 1. Sets direction for motor movement (forward, backwards)
+   * 2. Measures distance coverd
+   * 3. Dynamically checks for obstacles ahead
+   * 4. Corrects robot's course by checking encoder readings
+   * 5. Reads data from sonars in order to create better maps
+   * 6. Once movement is finished, it stops the engine
+   * 7. Distance covered is not returned, in order to prevent breaking distance from being excluded from final result
+   */
   rCount = 0;
   lCount = 0;
   distanceDrivenL = 0;
@@ -337,6 +353,12 @@ void moveStraight(int moveDirection, double distance)
 
 float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwise
 {
+  /*
+   * This function:
+   * 1. Rotates robot in adequate directon in open loop
+   * 2. Is an emergency function that should not be used by any means
+   * 3. Returns value of angle estimated by external measurements
+   */
   /*rCount = 0;
     lCount = 0;*/
   if (detectObstacle(turnDirection, 20))
@@ -406,6 +428,13 @@ float turn(int turnDirection, int turnTimems, int turnSpeed) //turning is tankwi
 
 float turn(int turnDirection, float angle) //turning is tankwise
 {
+  /*
+   * This function:
+   * 1. Rotates robot in adequate directon in closed loop
+   * 2. Controls robot rotation by reading IMU
+   * 3. Measures difference between initial angle and current angle and breaks when it exceeds given value
+   * 4. Returns angle that robot has rotated
+   */
   //float correction = 1.7;
   float correction = 1.0;
   
@@ -491,6 +520,11 @@ float turn(int turnDirection, float angle) //turning is tankwise
 
 float rotateCamera(int cameraDirection,int camSpeed) //rotates camera
 {
+  /*
+   * This function:
+   * 1. Rotates camera by rotating stepper motor
+   * 2. Returns step angle
+   */
     waitingSteps = cameraDirection * moveSteps / 16;
     stepper.setSpeed(camSpeed); //0-255  
     stepper.step(waitingSteps);
@@ -501,6 +535,10 @@ float rotateCamera(int cameraDirection,int camSpeed) //rotates camera
 
 void calibrate()
 {
+  /*
+   * This function:
+   * 1. Calibrates IMU
+   */
   Accel_Init();
   Compass_Init();
   Gyro_Init();
@@ -528,6 +566,10 @@ void calibrate()
 }
 
 void setup() {
+  /*
+   * This function:
+   * 1. Starts every possible interface and device
+   */
   SerialUSB.begin(115200);           // set up SerialUSB library at 9600 bps
 
   SerialUSB.println("start");
@@ -536,16 +578,19 @@ void setup() {
   cameraServo.attach(SERVO_PIN);
   cameraServo.write(95);
 
-  pinMode(trigPinForward, OUTPUT);    // settings for sonic sensors
+  // settings for sonic sensors
+  pinMode(trigPinForward, OUTPUT);    
   pinMode(echoPinForward, INPUT);
   pinMode(trigPinLeft, OUTPUT);
   pinMode(echoPinLeft, INPUT);
   pinMode(trigPinRight, OUTPUT);
   pinMode(echoPinRight, INPUT);
 
+  //setting for encoders
   pinMode(encoderPinL, INPUT);
   pinMode(encoderPinR, INPUT);
-  attachInterrupt(encoderPinL, tickL, CHANGE);
+  //start of encoder interrupts
+  attachInterrupt(encoderPinL, tickL, CHANGE); 
   attachInterrupt(encoderPinR, tickR, CHANGE);
 
   initIMU();
@@ -554,7 +599,14 @@ void setup() {
 }
 
 void loop() {
-  
+  /*
+   * This function:
+   * 1. Is main program loop
+   * 2. Reads commands
+   * 3. Executes commands
+   * 4. Sends feedback to Raspberry
+   * 5. Clears USB
+   */
   //readIMU();
   if (SerialUSB.available()) recieveUSB(); //call event function
   if (fromUSB.received) {

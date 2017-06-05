@@ -1,5 +1,9 @@
 void recieveUSB() //USB data receive event function
 {
+  /*
+   * This function:
+   * 1. Reads data from USB in correct format
+   */
   char readChar;
   String numberStr = "";
   int i = 0;
@@ -26,8 +30,13 @@ void recieveUSB() //USB data receive event function
 }
 bool waitForRaspberry(int waitTime)
 {
+  /*
+   * This function:
+   * 1. Waits for Raspberry's confirmation
+   * 2. It returns 0 if Raspberry confirmed action and 1 if not
+   */
   int wait = 0;
-  while (wait != waitTime) //waits for Raspberry confirmation
+  while (wait != waitTime)
   {
     if (fromUSB.received &&  fromUSB.command == "w")
     {
@@ -44,12 +53,20 @@ bool waitForRaspberry(int waitTime)
 }
 void clearDataFromUSB()
 {
+  /*
+   * This function:
+   * 1. Clears data from USB
+   */
   fromUSB.command = ' ';
   fromUSB.argument = 0;
   fromUSB.received = false;
 }
 void sendConfirmation(String command, String argument)//confirms execution of command
 {
+  /*
+   * This function:
+   * 1. Sends confirmaton that the action requested by Raspberry was successful or not
+   */
   SerialUSB.println(command);
   SerialUSB.println(argument);
   SerialUSB.println(END_OF_MESSAGE);

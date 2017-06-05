@@ -2,6 +2,10 @@
 
 void Compass_Heading()
 {
+  /*
+   * This function:
+   * 1. Calculates magnetometer readings
+   */
   float MAG_X;
   float MAG_Y;
   float cos_roll;
